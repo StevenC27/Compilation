@@ -24,18 +24,18 @@ public class LexToken {
 
 	public String toString() {
 		if (type == IDENTIFIER)
-			return "IDENTIFIER [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "IDENTIFIER [" + token + "]";
 		else if (type == KEYWORD)
-			return "KEYWORD [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "KEYWORD [" + token + "]";
 		else if (type == SYNTAX_TOKEN)
-			return "SYNTAX_TOKEN [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "SYNTAX_TOKEN [" + token + "]";
 		else if (type == TYPE_NAME)
-			return "TYPE_NAME [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "TYPE_NAME [" + token + "]";
 		else if (type == LITERAL_NUMBER)
-			return "LITERAL_NUMBER [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "LITERAL_NUMBER [" + token + "]";
 		else if (type == LITERAL_STRING)
-			return "LITERAL_STRING [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+			return "LITERAL_STRING [" + token + "]";
 		
-		return "UNKNOWN [" + token + "] on line " + lineNumber + ", offset " + characterOffset + "\n";
+		return "UNKNOWN [" + token + "]";
 	}
 }

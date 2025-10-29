@@ -10,11 +10,10 @@ public class LexError {
 	public int characterOffset;
 	public String message;
 
-	LexError(int type, int lineNumber, int characterOffset, String msg)
-		{
+	LexError(int type, int lineNumber, int characterOffset, String msg) {
 		this.type = type;
 		this.lineNumber = lineNumber;
 		this.characterOffset = characterOffset;
 		this.message = msg;
-		}
+	}
 }

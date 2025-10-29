@@ -9,12 +9,12 @@ import java.util.Scanner;
 public class Driver {
 
     public static void main(String[] args) throws IOException {
-        Path filePath = Path.of("./package_starter/input_given/lex1.txt");
-        String stream = Files.readString(filePath);
+        for (int i = 1; i <= 5; i++){
+            Path filePath = Path.of("./package_starter/input_given/lex" + i + ".txt");
+            String stream = Files.readString(filePath);
+            Lex lexicalAnalyser = new Lex(stream);
+            System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
 
-
-        Lex lexicalAnalyser = new Lex(stream);
-
-        System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
+        }
     }
 }
