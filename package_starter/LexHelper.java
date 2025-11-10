@@ -177,4 +177,8 @@ public class LexHelper {
     public List<LexToken> getLexTokens(){
         return lexTokens;
     }
+
+    public List<LexError> getLexErrors(){
+        return lexErrors;
+    }
 }

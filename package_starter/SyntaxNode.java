@@ -25,7 +25,7 @@ public class SyntaxNode {
 	public int lineNumber;
 	public int characterOffset;
 	public String token;
-	SyntaxNode children[];
+	SyntaxNode[] children;
 
 	public SyntaxNode(int type, int lineNumber, int characterOffset, String token) {
 		this.type = type;

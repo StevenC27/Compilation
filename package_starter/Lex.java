@@ -12,9 +12,6 @@ public class Lex {
 	}
 	
 	LexError[] getErrors() {
-
-
-
-		return null;
+		return lexHelper.getLexErrors().toArray(new LexError[0]);
 	}
 }

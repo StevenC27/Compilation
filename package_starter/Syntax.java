@@ -1,9 +1,10 @@
 public class Syntax {
+
+	LexToken[] lexTokens;
   
-	Syntax(LexToken tokens[])
-		{
-		
-		}
+	Syntax(LexToken[] tokens) {
+		this.lexTokens = tokens;
+	}
 	
 	SyntaxNode parse()
 		{
