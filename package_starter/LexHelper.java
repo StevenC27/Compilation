@@ -12,10 +12,10 @@ public class LexHelper {
 
     public LexHelper(String input){
         this.input = input;
-        analyse();
+        tokenise();
     }
 
-    public void analyse(){
+    public void tokenise(){
         lexTokens = new ArrayList<>();
         String currentToken = "";
         int lineNumber = 1;

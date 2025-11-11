@@ -1,18 +1,18 @@
 public class Syntax {
-
 	LexToken[] lexTokens;
   
 	Syntax(LexToken[] tokens) {
 		this.lexTokens = tokens;
 	}
 	
-	SyntaxNode parse()
-		{
+	SyntaxNode parse(){
+		// Create node for program.
+
+
 		return null;
-		}
+	}
 	
-	SyntaxError[] getErrors()
-		{
+	SyntaxError[] getErrors(){
 		return null;
-		}
+	}
 }

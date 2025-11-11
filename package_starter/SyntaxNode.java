@@ -34,6 +34,10 @@ public class SyntaxNode {
 		this.token = token;
 	}
 
+	public void setChildren(SyntaxNode[] children) {
+		this.children = children;
+	}
+
 	public String toString() {
 		if (type == IDENTIFIER)
 			return "IDENTIFIER [" + token + "]";
