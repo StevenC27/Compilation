@@ -39,16 +39,54 @@ public class SyntaxNode {
 		this.children = new SyntaxNode[0];
 	}
 
-	public void addChild(SyntaxNode children) {
-		List<SyntaxNode> tempChildren = Arrays.asList(children);
-		tempChildren.add(children);
-		this.children = tempChildren.toArray(new SyntaxNode[0]);
+	public void addChild(SyntaxNode child) {
+		this.children = Arrays.copyOf(children, children.length + 1);
+		this.children[this.children.length-1] = child;
 	}
 
 	public String toString() {
-		if (type == IDENTIFIER)
+		if (type == PROGRAM)
+			return "PROGRAM [" + token + "]";
+		else if (type == STATEMENT_LIST)
+			return "STATEMENT_LIST [" + token + "]";
+		else if (type == STATEMENT)
+			return "STATEMENT [" + token + "]";
+		else if (type == IF)
+			return "IF [" + token + "]";
+		else if (type == WHILE)
+			return "WHILE [" + token + "]";
+		else if (type == SCOPE)
+			return "SCOPE [" + token + "]";
+		else if (type == DECLARE)
+			return "DECLARE [" + token + "]";
+		else if (type == ASSIGN)
+			return "ASSIGN [" + token + "]";
+		else if (type == EXPRESSION)
+			return "EXPRESSION [" + token + "]";
+		else if (type == MATH)
+			return "MATH [" + token + "]";
+		else if (type == MATH_ADD)
+			return "MATH_ADD [" + token + "]";
+		else if (type == MATH_SUBTRACT)
+			return "MATH_SUBTRACT [" + token + "]";
+		else if (type == TERM_MULTIPLY)
+			return "TERM_MULTIPLY [" + token + "]";
+		else if (type == TERM_DIVIDE)
+			return "TERM_DIVIDE [" + token + "]";
+		else if (type == COMPARISON)
+			return "COMPARISON [" + token + "]";
+		else if (type == TERM)
+			return "TERM [" + token + "]";
+		else if (type == FACTOR)
+			return "FACTOR [" + token + "]";
+		else if (type == IDENTIFIER)
 			return "IDENTIFIER [" + token + "]";
-		
+		else if (type == TYPE_NAME)
+			return "TYPE_NAME [" + token + "]";
+		else if (type == NUMBER)
+			return "NUMBER [" + token + "]";
+		else if (type == STRING)
+			return "STRING [" + token + "]";
 		return "UNKNOWN";
 	}
 }

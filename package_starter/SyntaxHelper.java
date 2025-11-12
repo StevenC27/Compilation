@@ -1,10 +1,11 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Objects;
 
 public class SyntaxHelper {
     LexToken[] lexTokens;
-    int position = 0;
+    Hashtable<Integer, HashSet<String>> firsts = initFirsts();
+    int position;
     public SyntaxHelper(LexToken[] lexTokens){
         this.lexTokens = lexTokens;
         this.position = 0;
@@ -12,7 +13,9 @@ public class SyntaxHelper {
 
     public SyntaxNode parseProgram(){
         // <program> ::= <statementList>
-        return parseStatementList();
+        SyntaxNode programNode = new SyntaxNode(SyntaxNode.PROGRAM, 0, 0, "");
+        programNode.addChild(parseStatementList());
+        return programNode;
     }
 
     public SyntaxNode parseStatementList(){
@@ -32,18 +35,18 @@ public class SyntaxHelper {
 
     public SyntaxNode parseStatement(){
         // <statement> ::= <declaration> | <assignment> | <if> | <while>
-        SyntaxNode statement = new SyntaxNode(SyntaxNode.STATEMENT, 0, 0, "");
+        SyntaxNode statementNode = new SyntaxNode(SyntaxNode.STATEMENT, 0, 0, "");
 
         if (Objects.equals(currentToken().token, "if"))
-            statement.addChild(parseIf());
+            statementNode.addChild(parseIf());
         else if (Objects.equals(currentToken().token, "while"))
-            statement.addChild(parseWhile());
+            statementNode.addChild(parseWhile());
         else if (currentToken().type == LexToken.TYPE_NAME)
-            statement.addChild(parseDeclare());
+            statementNode.addChild(parseDeclare());
         else if (currentToken().type == LexToken.IDENTIFIER)
-            statement.addChild(parseAssign());
+            statementNode.addChild(parseAssign());
         else return null;
-        return statement;
+        return statementNode;
     }
 
     public SyntaxNode parseIf(){
@@ -53,32 +56,41 @@ public class SyntaxHelper {
         // <if> --- <expression> <scope> <scope>    (for if-else)
         SyntaxNode ifNode = new SyntaxNode(SyntaxNode.IF, 0, 0, "");
 
+        ifNode.addChild(parseExpression());
+        ifNode.addChild(parseScope());
+        if (Objects.equals(nextToken().token, "else"))
+            ifNode.addChild(parseScope());
 
-
-        return null;
+        return ifNode;
     }
 
     public SyntaxNode parseWhile(){
         // <while> ::= while ( <expression> ) <scope>
 
         // <while> --- <expression> <scope>
-
-        return null;
+        SyntaxNode whileNode = new SyntaxNode(SyntaxNode.WHILE, 0, 0, "");
+        return whileNode;
     }
 
     public SyntaxNode parseScope(){
         // <scope> ::= { <statementList> }
 
         // <scope> --- <statementList>
-
-        return null;
+        SyntaxNode scopeNode = new SyntaxNode(SyntaxNode.SCOPE, 0, 0, "");
+        return scopeNode;
     }
 
     public SyntaxNode parseDeclare(){
         // <declaration> --- typeName identifier
         // <declaration> --- typeName <assignment>
 
-        return null;
+        SyntaxNode declareNode = new SyntaxNode(SyntaxNode.DECLARE, 0, 0, "");
+        declareNode.addChild(parseTypeName());
+        if (expectType(LexToken.IDENTIFIER)){
+            if ()
+        }
+
+        return declareNode;
     }
 
     public SyntaxNode parseAssign(){
@@ -86,49 +98,71 @@ public class SyntaxHelper {
 
         // <assignment> --- identifier <expression>
         // <assignment> --- identifier string
+        SyntaxNode assignNode = new SyntaxNode(SyntaxNode.ASSIGN, 0, 0, "");
+        if (expectType(LexToken.IDENTIFIER))
+            assignNode.addChild(parseIdentifier());
+        else return null;
 
-        return null;
+        if (expectType(LexToken.LITERAL_STRING)){
+            assignNode.addChild(parseString());
+        } else {
+            assignNode.addChild(parseExpression());
+        }
+
+        return assignNode;
     }
 
     public SyntaxNode parseExpression(){
         // <expression> --- <math>
         // <expression> --- <comparison>
+        SyntaxNode expressionNode = new SyntaxNode(SyntaxNode.EXPRESSION, 0, 0, "");
 
-        return null;
+        return expressionNode;
     }
 
     public SyntaxNode parseMath(){
         // <math> ::= <term>
         //| <math> + <term>
         //| <math> - <term>
-        SyntaxNode math = new SyntaxNode(SyntaxNode.MATH, 0, 0, "");
-
-
-        return null;
+        SyntaxNode mathNode = new SyntaxNode(SyntaxNode.MATH, 0, 0, "");
+        if (Objects.equals(nextToken().token, "+"))
+            mathNode.addChild(parseMathAdd());
+        else if (Objects.equals(nextToken().token, "-"))
+            mathNode.addChild(parseMathSubtract());
+        else mathNode.addChild(parseTerm());
+        return mathNode;
     }
 
     public SyntaxNode parseMathAdd(){
         // <-> ::= <math> + <term>
-        return null;
+        SyntaxNode mathAddNode = new SyntaxNode(SyntaxNode.MATH_ADD,
+                nextToken().lineNumber, nextToken().characterOffset, nextToken().token);
+        mathAddNode.addChild(parseTerm());
+        mathAddNode.addChild(parseFactor());
+        return mathAddNode;
     }
 
     public SyntaxNode parseMathSubtract(){
         // <math> - <term>
-        return null;
+        SyntaxNode mathSubtractNode = new SyntaxNode(SyntaxNode.MATH_SUBTRACT,
+                nextToken().lineNumber, nextToken().characterOffset, nextToken().token);
+        mathSubtractNode.addChild(parseTerm());
+        mathSubtractNode.addChild(parseFactor());
+        return mathSubtractNode;
     }
 
     public SyntaxNode parseTermMultiply(){
-        SyntaxNode termMultiply = new SyntaxNode(SyntaxNode.TERM_MULTIPLY, 0, 0, "");
-        termMultiply.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
-        termMultiply.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
-        return termMultiply;
+        SyntaxNode termMultiplyNode = new SyntaxNode(SyntaxNode.TERM_MULTIPLY, 0, 0, "");
+        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
+        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
+        return termMultiplyNode;
     }
 
     public SyntaxNode parseTermDivide(){
-        SyntaxNode termDivide = new SyntaxNode(SyntaxNode.TERM_DIVIDE, 0, 0, "");
-        termDivide.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
-        termDivide.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
-        return termDivide;
+        SyntaxNode termDivideNode = new SyntaxNode(SyntaxNode.TERM_DIVIDE, 0, 0, "");
+        termDivideNode.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
+        termDivideNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
+        return termDivideNode;
     }
 
     public SyntaxNode parseComparison(){
@@ -141,38 +175,42 @@ public class SyntaxHelper {
 
     public SyntaxNode parseFactor(){
         // <factor> ::= number | identifier | ( <expression> )
-        SyntaxNode factor = new SyntaxNode(SyntaxNode.FACTOR, 0, 0, "");
+        SyntaxNode factorNode = new SyntaxNode(SyntaxNode.FACTOR, 0, 0, "");
         int nextTokenType = nextToken().type;
-        if (nextTokenType == LexToken.IDENTIFIER)
-            factor.addChild(parseIdentifier());
-        else if (nextTokenType == LexToken.LITERAL_NUMBER)
-            factor.addChild(parseNumber());
-        else factor.addChild(parseExpression());
-        return factor;
+        if (expectType(LexToken.IDENTIFIER))
+            factorNode.addChild(parseIdentifier());
+        else if (expectType(LexToken.LITERAL_NUMBER))
+            factorNode.addChild(parseNumber());
+        else factorNode.addChild(parseExpression());
+        return factorNode;
     }
 
     public SyntaxNode parseTerm(){
         // <term> = <factor> | <term> * <factor> | <term> / <factor>
-        SyntaxNode term = new SyntaxNode(SyntaxNode.TERM)
-        if (nextToken().token == "*")
+        SyntaxNode termNode = new SyntaxNode(SyntaxNode.TERM, 0, 0, "");
+        if (expectToken("*"))
+            termNode.addChild(parseTermMultiply());
+        else if (expectToken("/"))
+            termNode.addChild(parseTermDivide());
+        else termNode.addChild(parseFactor());
 
-        return null;
+        return termNode;
     }
 
     public SyntaxNode parseIdentifier(){
-        return null;
+        return new SyntaxNode(SyntaxNode.IDENTIFIER, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
     }
 
     public SyntaxNode parseTypeName(){
-        return null;
+        return new SyntaxNode(SyntaxNode.TYPE_NAME, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
     }
 
     public SyntaxNode parseNumber(){
-        return null;
+        return new SyntaxNode(SyntaxNode.NUMBER, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
     }
 
     public SyntaxNode parseString(){
-        return null;
+        return new SyntaxNode(SyntaxNode.STRING, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
     }
 
     public void advance(){
@@ -187,5 +225,60 @@ public class SyntaxHelper {
     public LexToken nextToken(){
         if (position >= lexTokens.length - 1) return null;
         return lexTokens[position + 1];
+    }
+
+    public boolean currentExpectType(int tokenType) {
+        return currentToken().type == tokenType;
+    }
+
+    public boolean expectToken(String token){
+        return Objects.equals(currentToken().token, token);
+    }
+
+    public Hashtable<Integer, HashSet<String>> initFirsts(){
+        Hashtable<Integer, HashSet<String>> tempFirsts = new Hashtable<>();
+
+        HashSet<String> ifFirst = new HashSet<>();
+        HashSet<String> whileFirst = new HashSet<>();
+        HashSet<String> scopeFirst = new HashSet<>();
+        HashSet<String> declareFirst = new HashSet<>();
+        HashSet<String> assignFirst = new HashSet<>();
+        HashSet<String> expressionFirst = new HashSet<>();
+        HashSet<String> mathFirst = new HashSet<>();
+        HashSet<String> compareFirst = new HashSet<>();
+        HashSet<String> termFirst = new HashSet<>();
+        HashSet<String> factorFirst = new HashSet<>();
+
+        ifFirst.add("if");
+        whileFirst.add("while");
+        scopeFirst.add("{");
+        declareFirst.add("typeName");
+        assignFirst.add("identifier");
+        expressionFirst.add("number");
+        expressionFirst.add("identifier");
+        expressionFirst.add("(");
+        mathFirst.add("number");
+        mathFirst.add("identifier");
+        mathFirst.add("(");
+        termFirst.add("number");
+        termFirst.add("identifier");
+        termFirst.add("(");
+        factorFirst.add("number");
+        factorFirst.add("identifier");
+        factorFirst.add("(");
+        compareFirst.add("==");
+
+        tempFirsts.put(SyntaxNode.IF, ifFirst);
+        tempFirsts.put(SyntaxNode.WHILE, whileFirst);
+        tempFirsts.put(SyntaxNode.SCOPE, scopeFirst);
+        tempFirsts.put(SyntaxNode.DECLARE, declareFirst);
+        tempFirsts.put(SyntaxNode.ASSIGN, assignFirst);
+        tempFirsts.put(SyntaxNode.EXPRESSION, expressionFirst);
+        tempFirsts.put(SyntaxNode.MATH, mathFirst);
+        tempFirsts.put(SyntaxNode.COMPARISON, compareFirst);
+        tempFirsts.put(SyntaxNode.TERM, termFirst);
+        tempFirsts.put(SyntaxNode.FACTOR, factorFirst);
+
+        return tempFirsts;
     }
 }

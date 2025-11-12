@@ -14,6 +14,7 @@ public class Driver {
             System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
 
             Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
+            System.out.println(syntaxAnalyser.parse());
         }
     }
 }
