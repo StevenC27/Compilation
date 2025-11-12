@@ -1,15 +1,13 @@
 public class Syntax {
-	LexToken[] lexTokens;
+	SyntaxHelper syntaxHelper;
   
 	Syntax(LexToken[] tokens) {
-		this.lexTokens = tokens;
+		syntaxHelper = new SyntaxHelper(tokens);
 	}
 	
 	SyntaxNode parse(){
 		// Create node for program.
-
-
-		return null;
+		return syntaxHelper.parseProgram();
 	}
 	
 	SyntaxError[] getErrors(){

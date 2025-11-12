@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class SyntaxNode {
 	public static final int PROGRAM = 1;
 	public static final int STATEMENT_LIST = 2;
@@ -32,10 +36,13 @@ public class SyntaxNode {
 		this.lineNumber = lineNumber;
 		this.characterOffset = characterOffset;
 		this.token = token;
+		this.children = new SyntaxNode[0];
 	}
 
-	public void setChildren(SyntaxNode[] children) {
-		this.children = children;
+	public void addChild(SyntaxNode children) {
+		List<SyntaxNode> tempChildren = Arrays.asList(children);
+		tempChildren.add(children);
+		this.children = tempChildren.toArray(new SyntaxNode[0]);
 	}
 
 	public String toString() {

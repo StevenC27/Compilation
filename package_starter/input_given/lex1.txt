@@ -1,8 +1,10 @@
 int q = 1;
+
+
 int p = 2;
 p = p + q - p;
 
-if (==(q, 1))
+if (===(q, 1))
 	{
 	string x = "hi \n there";
 	}
