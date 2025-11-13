@@ -11,6 +11,6 @@ public class Syntax {
 	}
 	
 	SyntaxError[] getErrors(){
-		return null;
+		return syntaxHelper.syntaxErrors.toArray(new SyntaxError[0]);
 	}
 }

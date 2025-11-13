@@ -44,6 +44,10 @@ public class SyntaxNode {
 		this.children[this.children.length-1] = child;
 	}
 
+	public String printChildren(){
+		return Arrays.toString(children);
+	}
+
 	public String toString() {
 		if (type == PROGRAM)
 			return "PROGRAM [" + token + "]";
@@ -87,6 +91,6 @@ public class SyntaxNode {
 			return "NUMBER [" + token + "]";
 		else if (type == STRING)
 			return "STRING [" + token + "]";
-		return "UNKNOWN";
+		else return "UNKNOWN";
 	}
 }

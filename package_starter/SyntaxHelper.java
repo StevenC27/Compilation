@@ -1,41 +1,54 @@
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Objects;
+import java.util.*;
 
 public class SyntaxHelper {
     LexToken[] lexTokens;
-    Hashtable<Integer, HashSet<String>> firsts = initFirsts();
+    List<SyntaxError> syntaxErrors;
     int position;
+
     public SyntaxHelper(LexToken[] lexTokens){
         this.lexTokens = lexTokens;
+        this.syntaxErrors = new ArrayList<>();
         this.position = 0;
     }
 
     public SyntaxNode parseProgram(){
         // <program> ::= <statementList>
-        SyntaxNode programNode = new SyntaxNode(SyntaxNode.PROGRAM, 0, 0, "");
+        SyntaxNode programNode = new SyntaxNode(SyntaxNode.PROGRAM, line(), offset(), "");
         programNode.addChild(parseStatementList());
         return programNode;
     }
 
     public SyntaxNode parseStatementList(){
-        // <statementList> ::= <statement> ; | <statementList> ; <statement> ;
+        // <statementList> ::= <statement> ;
+        // <statementList> ::= <statement> ; <statementList> ;
 
-        // <statementList> --- <statement>
+        SyntaxNode statementListNode = new SyntaxNode(SyntaxNode.STATEMENT_LIST, line(), offset(), "");
 
-        SyntaxNode statementList = new SyntaxNode(SyntaxNode.STATEMENT_LIST, 0, 0, "");
-        while(position != lexTokens.length - 1){
-            SyntaxNode statement = parseStatement();
-            if (statement != null){
-                statementList.addChild(statement);
-            }
+        // FIRST: {$, }}
+        if (position >= lexTokens.length) return statementListNode;
+
+        statementListNode.addChild(parseStatement());
+        advance();
+
+        if (position >= lexTokens.length) return statementListNode;
+
+        statementListNode.addChild(parseStatementList());
+        if (position >= lexTokens.length){
+            LexToken lastToken = lexTokens[lexTokens.length-1];
+            syntaxErrors.add(new SyntaxError(SyntaxError.OTHER,
+                    lastToken.lineNumber,
+                    lastToken.characterOffset + lastToken.token.length(),
+                    "End of file"));
+        } else {
+            advance();
         }
-        return statementList;
+
+        return statementListNode;
     }
 
     public SyntaxNode parseStatement(){
         // <statement> ::= <declaration> | <assignment> | <if> | <while>
-        SyntaxNode statementNode = new SyntaxNode(SyntaxNode.STATEMENT, 0, 0, "");
+        SyntaxNode statementNode = new SyntaxNode(SyntaxNode.STATEMENT, line(), offset(), "");
 
         if (Objects.equals(currentToken().token, "if"))
             statementNode.addChild(parseIf());
@@ -54,7 +67,7 @@ public class SyntaxHelper {
 
         // <if> --- <expression> <scope>    (for just if)
         // <if> --- <expression> <scope> <scope>    (for if-else)
-        SyntaxNode ifNode = new SyntaxNode(SyntaxNode.IF, 0, 0, "");
+        SyntaxNode ifNode = new SyntaxNode(SyntaxNode.IF, line(), offset(), "");
 
         ifNode.addChild(parseExpression());
         ifNode.addChild(parseScope());
@@ -68,7 +81,7 @@ public class SyntaxHelper {
         // <while> ::= while ( <expression> ) <scope>
 
         // <while> --- <expression> <scope>
-        SyntaxNode whileNode = new SyntaxNode(SyntaxNode.WHILE, 0, 0, "");
+        SyntaxNode whileNode = new SyntaxNode(SyntaxNode.WHILE, line(), offset(), "");
         return whileNode;
     }
 
@@ -76,7 +89,7 @@ public class SyntaxHelper {
         // <scope> ::= { <statementList> }
 
         // <scope> --- <statementList>
-        SyntaxNode scopeNode = new SyntaxNode(SyntaxNode.SCOPE, 0, 0, "");
+        SyntaxNode scopeNode = new SyntaxNode(SyntaxNode.SCOPE, line(), offset(), "");
         return scopeNode;
     }
 
@@ -84,10 +97,20 @@ public class SyntaxHelper {
         // <declaration> --- typeName identifier
         // <declaration> --- typeName <assignment>
 
-        SyntaxNode declareNode = new SyntaxNode(SyntaxNode.DECLARE, 0, 0, "");
-        declareNode.addChild(parseTypeName());
-        if (expectType(LexToken.IDENTIFIER)){
-            if ()
+        SyntaxNode declareNode = new SyntaxNode(SyntaxNode.DECLARE, line(), offset(), "");
+        if (compareType(LexToken.TYPE_NAME, currentToken().type)){
+            declareNode.addChild(parseTerminal(SyntaxNode.TYPE_NAME));
+            if (compareType(LexToken.IDENTIFIER, currentToken().type)){
+                if (compareToken("=", nextToken().token)){
+                    declareNode.addChild(parseAssign());
+                } else {
+                    declareNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+                }
+            } else {
+                syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), "Unknown syntax, expected Identifier"));
+            }
+        } else {
+            syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), "Unknown syntax, expected TypeName"));
         }
 
         return declareNode;
@@ -96,40 +119,54 @@ public class SyntaxHelper {
     public SyntaxNode parseAssign(){
         // <assignment> ::= identifier = <expression> | identifier = string
 
-        // <assignment> --- identifier <expression>
-        // <assignment> --- identifier string
-        SyntaxNode assignNode = new SyntaxNode(SyntaxNode.ASSIGN, 0, 0, "");
-        if (expectType(LexToken.IDENTIFIER))
-            assignNode.addChild(parseIdentifier());
-        else return null;
-
-        if (expectType(LexToken.LITERAL_STRING)){
-            assignNode.addChild(parseString());
+        // <assignment> ::= identifier <expression>
+        // <assignment> ::= identifier string
+        SyntaxNode assignNode = new SyntaxNode(SyntaxNode.ASSIGN, line(), offset(), "");
+        if (compareType(LexToken.IDENTIFIER, currentToken().type)) {
+            assignNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+            advance();
+            System.out.println(currentToken());
+            if (compareType(LexToken.LITERAL_STRING, currentToken().type)) {
+                assignNode.addChild(parseTerminal(SyntaxNode.STRING));
+            } else if (compareType(LexToken.LITERAL_NUMBER, currentToken().type)
+                    || compareType(LexToken.IDENTIFIER, currentToken().type)
+                    || compareToken("(", currentToken().token)
+                    || compareToken("==", currentToken().token)){
+                assignNode.addChild(parseExpression());
+            } else {
+                syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), "Unknown syntax, expected <Expression> or String"));
+            }
         } else {
-            assignNode.addChild(parseExpression());
+            syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), "Unknown syntax, expected Identifier"));
         }
+
+
 
         return assignNode;
     }
 
     public SyntaxNode parseExpression(){
-        // <expression> --- <math>
-        // <expression> --- <comparison>
-        SyntaxNode expressionNode = new SyntaxNode(SyntaxNode.EXPRESSION, 0, 0, "");
+        // <expression> ::= <math>
+        // <expression> ::= <comparison>
+        SyntaxNode expressionNode = new SyntaxNode(SyntaxNode.EXPRESSION, line(), offset(), "");
+        if (compareToken("==", currentToken().token)){
+            expressionNode.addChild(parseComparison());
+        } else if (compareType(LexToken.LITERAL_NUMBER, currentToken().type)
+                || compareType(LexToken.IDENTIFIER, currentToken().type)
+                || compareToken("(", currentToken().token)){
+            expressionNode.addChild(parseMath());
+        } else {
+            syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), "Unknown syntax, expected <Math> or <Comparison>"));
+        }
 
         return expressionNode;
     }
 
     public SyntaxNode parseMath(){
         // <math> ::= <term>
-        //| <math> + <term>
-        //| <math> - <term>
-        SyntaxNode mathNode = new SyntaxNode(SyntaxNode.MATH, 0, 0, "");
-        if (Objects.equals(nextToken().token, "+"))
-            mathNode.addChild(parseMathAdd());
-        else if (Objects.equals(nextToken().token, "-"))
-            mathNode.addChild(parseMathSubtract());
-        else mathNode.addChild(parseTerm());
+        // <math> ::= <math> + <term>
+        // <math> ::= <math> - <term>
+        SyntaxNode mathNode = new SyntaxNode(SyntaxNode.MATH, line(), offset(), "");
         return mathNode;
     }
 
@@ -152,16 +189,16 @@ public class SyntaxHelper {
     }
 
     public SyntaxNode parseTermMultiply(){
-        SyntaxNode termMultiplyNode = new SyntaxNode(SyntaxNode.TERM_MULTIPLY, 0, 0, "");
-        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
-        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
+        SyntaxNode termMultiplyNode = new SyntaxNode(SyntaxNode.TERM_MULTIPLY, line(), offset(), "");
+        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.TERM, line(), offset(), ""));
+        termMultiplyNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, line(), offset(), ""));
         return termMultiplyNode;
     }
 
     public SyntaxNode parseTermDivide(){
-        SyntaxNode termDivideNode = new SyntaxNode(SyntaxNode.TERM_DIVIDE, 0, 0, "");
-        termDivideNode.addChild(new SyntaxNode(SyntaxNode.TERM, 0, 0, ""));
-        termDivideNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, 0, 0, ""));
+        SyntaxNode termDivideNode = new SyntaxNode(SyntaxNode.TERM_DIVIDE, line(), offset(), "");
+        termDivideNode.addChild(new SyntaxNode(SyntaxNode.TERM, line(), offset(), ""));
+        termDivideNode.addChild(new SyntaxNode(SyntaxNode.FACTOR, line(), offset(), ""));
         return termDivideNode;
     }
 
@@ -175,46 +212,44 @@ public class SyntaxHelper {
 
     public SyntaxNode parseFactor(){
         // <factor> ::= number | identifier | ( <expression> )
-        SyntaxNode factorNode = new SyntaxNode(SyntaxNode.FACTOR, 0, 0, "");
+        SyntaxNode factorNode = new SyntaxNode(SyntaxNode.FACTOR, line(), offset(), "");
         int nextTokenType = nextToken().type;
-        if (expectType(LexToken.IDENTIFIER))
-            factorNode.addChild(parseIdentifier());
-        else if (expectType(LexToken.LITERAL_NUMBER))
-            factorNode.addChild(parseNumber());
+        if (compareType(LexToken.IDENTIFIER, currentToken().type))
+            factorNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+        else if (compareType(LexToken.LITERAL_NUMBER, currentToken().type))
+            factorNode.addChild(parseTerminal(SyntaxNode.NUMBER));
         else factorNode.addChild(parseExpression());
         return factorNode;
     }
 
     public SyntaxNode parseTerm(){
         // <term> = <factor> | <term> * <factor> | <term> / <factor>
-        SyntaxNode termNode = new SyntaxNode(SyntaxNode.TERM, 0, 0, "");
-        if (expectToken("*"))
+        SyntaxNode termNode = new SyntaxNode(SyntaxNode.TERM, line(), offset(), "");
+        if (compareToken("*", currentToken().token))
             termNode.addChild(parseTermMultiply());
-        else if (expectToken("/"))
+        else if (compareToken("/", currentToken().token))
             termNode.addChild(parseTermDivide());
         else termNode.addChild(parseFactor());
 
         return termNode;
     }
 
-    public SyntaxNode parseIdentifier(){
-        return new SyntaxNode(SyntaxNode.IDENTIFIER, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
-    }
-
-    public SyntaxNode parseTypeName(){
-        return new SyntaxNode(SyntaxNode.TYPE_NAME, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
-    }
-
-    public SyntaxNode parseNumber(){
-        return new SyntaxNode(SyntaxNode.NUMBER, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
-    }
-
-    public SyntaxNode parseString(){
-        return new SyntaxNode(SyntaxNode.STRING, currentToken().lineNumber, currentToken().characterOffset, currentToken().token);
+    public SyntaxNode parseTerminal(int type){
+        SyntaxNode node = new SyntaxNode(type, line(), offset(), currentToken().token);
+        advance();
+        return node;
     }
 
     public void advance(){
         this.position++;
+    }
+
+    public int line(){
+        return currentToken().lineNumber;
+    }
+
+    public int offset(){
+        return currentToken().characterOffset;
     }
 
     public LexToken currentToken(){
@@ -227,58 +262,11 @@ public class SyntaxHelper {
         return lexTokens[position + 1];
     }
 
-    public boolean currentExpectType(int tokenType) {
-        return currentToken().type == tokenType;
+    public boolean compareType(int expectedType, int realType){
+        return expectedType == realType;
     }
 
-    public boolean expectToken(String token){
-        return Objects.equals(currentToken().token, token);
-    }
-
-    public Hashtable<Integer, HashSet<String>> initFirsts(){
-        Hashtable<Integer, HashSet<String>> tempFirsts = new Hashtable<>();
-
-        HashSet<String> ifFirst = new HashSet<>();
-        HashSet<String> whileFirst = new HashSet<>();
-        HashSet<String> scopeFirst = new HashSet<>();
-        HashSet<String> declareFirst = new HashSet<>();
-        HashSet<String> assignFirst = new HashSet<>();
-        HashSet<String> expressionFirst = new HashSet<>();
-        HashSet<String> mathFirst = new HashSet<>();
-        HashSet<String> compareFirst = new HashSet<>();
-        HashSet<String> termFirst = new HashSet<>();
-        HashSet<String> factorFirst = new HashSet<>();
-
-        ifFirst.add("if");
-        whileFirst.add("while");
-        scopeFirst.add("{");
-        declareFirst.add("typeName");
-        assignFirst.add("identifier");
-        expressionFirst.add("number");
-        expressionFirst.add("identifier");
-        expressionFirst.add("(");
-        mathFirst.add("number");
-        mathFirst.add("identifier");
-        mathFirst.add("(");
-        termFirst.add("number");
-        termFirst.add("identifier");
-        termFirst.add("(");
-        factorFirst.add("number");
-        factorFirst.add("identifier");
-        factorFirst.add("(");
-        compareFirst.add("==");
-
-        tempFirsts.put(SyntaxNode.IF, ifFirst);
-        tempFirsts.put(SyntaxNode.WHILE, whileFirst);
-        tempFirsts.put(SyntaxNode.SCOPE, scopeFirst);
-        tempFirsts.put(SyntaxNode.DECLARE, declareFirst);
-        tempFirsts.put(SyntaxNode.ASSIGN, assignFirst);
-        tempFirsts.put(SyntaxNode.EXPRESSION, expressionFirst);
-        tempFirsts.put(SyntaxNode.MATH, mathFirst);
-        tempFirsts.put(SyntaxNode.COMPARISON, compareFirst);
-        tempFirsts.put(SyntaxNode.TERM, termFirst);
-        tempFirsts.put(SyntaxNode.FACTOR, factorFirst);
-
-        return tempFirsts;
+    public boolean compareToken(String expectedToken, String realToken){
+        return Objects.equals(expectedToken, realToken);
     }
 }
