@@ -1,8 +1,8 @@
 public class Semantic {
 
-	Semantic(SyntaxNode tree)
-		{
-		}
+	Semantic(SyntaxNode tree){
+
+	}
 	
 	Boolean parse()
 		{

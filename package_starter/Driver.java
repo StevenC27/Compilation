@@ -21,7 +21,7 @@ public class Driver {
         String stream = Files.readString(filePath);
 
         Lex lexicalAnalyser = new Lex(stream);
-        //System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
+        System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
 
         Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
         printNode(syntaxAnalyser.parse());
@@ -32,7 +32,7 @@ public class Driver {
 
     public static void printNode(SyntaxNode node){
         if (node != null){
-            System.out.println(node);
+            System.out.println(node + ", line = " + node.lineNumber + ", offset = " + node.characterOffset);
             for (SyntaxNode childNode : node.children) {
                 if (childNode != null){
                     System.out.println("    (" + childNode + ", line = " + childNode.lineNumber + ", offset = " + childNode.characterOffset + ")");

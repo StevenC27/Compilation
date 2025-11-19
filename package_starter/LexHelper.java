@@ -1,11 +1,12 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class LexHelper {
     public static final String[] KEYWORDS = {"if", "else", "while", "return"};
     public static final String[] SYNTAX_TOKENS = {"=", "==", "*", "/", "+", "-", "(", ")", "[", "]", "{", "}", ";", ","};
     public static final String[] TYPE_NAMES = {"int", "float", "string", "bool"};
-
     private final String input;
     private List<LexToken> lexTokens;
     private List<LexError> lexErrors;
@@ -16,17 +17,29 @@ public class LexHelper {
     }
 
     public void tokenise(){
+        // check if in string mode.
+
+        // ---String Mode---
+        // set the line and offset to the location of the first ".
+        // check for the closing " character.
+        // add characters to the string token.
+
+        // ---Not String Mode---
+        // check what the current character is and if it is valid.
+        // if the character is whitespace then change offset and line and check next character.
+        // if the character is not valid then add to errors.
+        // check if the current token can be a type.
+        // based on the next character, decide if the current token ends
+        // if it ends then add the token to the token list.
+
         lexTokens = new ArrayList<>();
+        lexErrors = new ArrayList<>();
         String currentToken = "";
         int lineNumber = 1;
         int characterOffset = 0;
         boolean stringMode = false;
 
         boolean tokenEnd = false;
-        boolean returnChar = false;
-        boolean lineChar = false;
-        boolean tabChar = false;
-        boolean spaceChar = false;
 
         int tokenType = LexToken.UNKNOWN;
 
@@ -66,16 +79,12 @@ public class LexHelper {
                 }
 
                 if (currentChar == '\r'){
-                    returnChar = true;
                     tokenEnd = true;
                 } else if (currentChar == '\n'){
-                    lineChar = true;
                     tokenEnd = true;
                 } else if (currentChar == '\t'){
-                    tabChar = true;
                     tokenEnd = true;
                 } else if (currentChar == ' '){
-                    spaceChar = true;
                     tokenEnd = true;
                 }
             }
@@ -94,23 +103,23 @@ public class LexHelper {
                     characterOffset += 2;
                 }
 
-                if (returnChar){
+                if (currentChar == '\r'){
                     lineNumber++;
-                    returnChar = false;
-                } else if (lineChar){
+                } else if (currentChar == '\n'){
                     characterOffset = 0;
-                    lineChar = false;
-                } else if (tabChar){
+                } else if (currentChar == '\t'){
                     characterOffset += 4;
-                    tabChar = false;
-                } else if (spaceChar){
+                } else if (currentChar == ' '){
                     characterOffset++;
-                    spaceChar = false;
+                } else if (!(currentChar == '"')){
+                    currentToken += currentChar;
                 }
 
-                if (!(currentChar == '\r' || currentChar == '\n' || currentChar == '\t' || currentChar == ' ' || currentChar == '"')){
-                    currentToken+=currentChar;
+                if (i == input.length() - 1) {
+                    tokenType = checkToken(currentToken);
+                    lexTokens.add(new LexToken(tokenType, lineNumber, characterOffset, currentToken));
                 }
+
             } else {
                 currentToken += currentChar;
             }

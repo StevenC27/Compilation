@@ -1,6 +1,4 @@
 int q = 1;
-
-
 int p = 2;
 p = p + q - p;
 

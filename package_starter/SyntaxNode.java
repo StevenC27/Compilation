@@ -44,45 +44,41 @@ public class SyntaxNode {
 		this.children[this.children.length-1] = child;
 	}
 
-	public String printChildren(){
-		return Arrays.toString(children);
-	}
-
 	public String toString() {
 		if (type == PROGRAM)
-			return "PROGRAM [" + token + "]";
+			return "PROGRAM";
 		else if (type == STATEMENT_LIST)
-			return "STATEMENT_LIST [" + token + "]";
+			return "STATEMENT_LIST";
 		else if (type == STATEMENT)
-			return "STATEMENT [" + token + "]";
+			return "STATEMENT";
 		else if (type == IF)
-			return "IF [" + token + "]";
+			return "IF";
 		else if (type == WHILE)
-			return "WHILE [" + token + "]";
+			return "WHILE";
 		else if (type == SCOPE)
-			return "SCOPE [" + token + "]";
+			return "SCOPE";
 		else if (type == DECLARE)
-			return "DECLARE [" + token + "]";
+			return "DECLARE";
 		else if (type == ASSIGN)
-			return "ASSIGN [" + token + "]";
+			return "ASSIGN";
 		else if (type == EXPRESSION)
-			return "EXPRESSION [" + token + "]";
+			return "EXPRESSION";
 		else if (type == MATH)
-			return "MATH [" + token + "]";
+			return "MATH";
 		else if (type == MATH_ADD)
-			return "MATH_ADD [" + token + "]";
+			return "MATH_ADD";
 		else if (type == MATH_SUBTRACT)
-			return "MATH_SUBTRACT [" + token + "]";
+			return "MATH_SUBTRACT";
 		else if (type == TERM_MULTIPLY)
-			return "TERM_MULTIPLY [" + token + "]";
+			return "TERM_MULTIPLY";
 		else if (type == TERM_DIVIDE)
-			return "TERM_DIVIDE [" + token + "]";
+			return "TERM_DIVIDE";
 		else if (type == COMPARISON)
-			return "COMPARISON [" + token + "]";
+			return "COMPARISON";
 		else if (type == TERM)
-			return "TERM [" + token + "]";
+			return "TERM";
 		else if (type == FACTOR)
-			return "FACTOR [" + token + "]";
+			return "FACTOR";
 		else if (type == IDENTIFIER)
 			return "IDENTIFIER [" + token + "]";
 		else if (type == TYPE_NAME)
