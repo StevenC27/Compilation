@@ -1,3 +1,6 @@
+int x = 1;
+bool y = ==(x, 1);
+
 if (==(1, 2)){
     int p = 2;
     string name = "steven";

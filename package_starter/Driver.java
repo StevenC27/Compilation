@@ -17,16 +17,16 @@ public class Driver {
             System.out.println(syntaxAnalyser.parse());
         }*/
 
-        Path filePath = Path.of("./package_starter/input_given/syntax6.txt");
+        Path filePath = Path.of("./package_starter/input_given/syntax1.txt");
         String stream = Files.readString(filePath);
 
         Lex lexicalAnalyser = new Lex(stream);
         System.out.println(Arrays.toString(lexicalAnalyser.getTokens()) + "\n");
 
         Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
-        //printNode(syntaxAnalyser.parse());
-        //System.out.println("\n");
-        //printError(syntaxAnalyser.getErrors());
+        printNode(syntaxAnalyser.parse());
+        System.out.println("\n");
+        printError(syntaxAnalyser.getErrors());
 
         Semantic semanticAnalyser = new Semantic(syntaxAnalyser.parse());
         boolean val = semanticAnalyser.parse();

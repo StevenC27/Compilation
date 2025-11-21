@@ -23,17 +23,30 @@ public class SyntaxHelper {
     }
 
     public SyntaxNode parseStatementList(){
-        // <statementList> ::= <statement> ;
-        // <statementList> ::= <statement> ; <statementList> ;
-
-        // initialises the statementListNode.
         SyntaxNode statementListNode = new SyntaxNode(SyntaxNode.STATEMENT_LIST, line(), offset(), "");
+        int i = 0;
+        while (true){
+            // checks if there is no more tokens.
+            if (endOfTokens()){
+                // adds the end of tokens error.
+                break;
+            } else if (compareToken("}", currentToken().token)){
+                advance();
+                break;
+            } else if (compareToken(";", currentToken().token)){
+                // checks if the current token is ';'.
 
-        // checks if there is no more tokens.
-        if (endOfTokens()){
-            // adds the end of tokens error.
-            endOfTokenError();
-        } else {
+                // checks the next token is '}'
+                if (compareToken("}", nextToken().token)){
+                    // if the next token is '}' then return the statementList since the end of a scope has been reached.
+                    advance();
+                    break;
+                } else {
+                    // if the next token is not '}' then advance to the next token.
+                    advance();
+                }
+            }
+
             // parses statement and stores it in statementNode.
             SyntaxNode statementNode = parseStatement();
 
@@ -41,33 +54,8 @@ public class SyntaxHelper {
             if (statementNode.children.length > 0){
                 // if the statement is not empty then add it to statementListNode.
                 addChildNode(statementListNode, statementNode);
-
-                // checks if there is no more tokens.
-                if (endOfTokens()){
-                    // adds the end of tokens error.
-                    endOfTokenError();
-                } else if (compareToken(";", currentToken().token)){
-                    // checks if the current token is ';'.
-
-                    // checks the next token is '}'
-                    if (compareToken("}", nextToken().token)){
-                        // if the next token is '}' then return the statementList since the end of a scope has been reached.
-                        return statementListNode;
-                    } else {
-                        // if the next token is not '}' then advance to the next token.
-                        advance();
-
-                        // checks if there is no more tokens.
-                        if (endOfTokens()){
-                            // adds the end of tokens error.
-                            endOfTokenError();
-                        } else {
-                            // parses statementList and adds it to the statementListNode.
-                            addChildNode(statementListNode, parseStatementList());
-                        }
-                    }
-                }
             }
+            i++;
         }
         return statementListNode;
     }
@@ -263,10 +251,7 @@ public class SyntaxHelper {
                 // if the end of tokens is not reached then parse statementList and add to scopeNode.
                 addChildNode(scopeNode, parseStatementList());
                 // checks if there is no more tokens.
-                if (endOfTokens()) {
-                    // adds the end of tokens error.
-                    endOfTokenError();
-                } else if (!compareToken("}", nextToken().token)) {
+                if (!compareToken("}", currentToken().token)) {
                     // if the token is not '}' then call unknown error.
                     unknownSyntaxError("Expected } but received unknown syntax.");
                 }
@@ -643,6 +628,7 @@ public class SyntaxHelper {
     }
 
     public LexToken nextToken(){
+        if (position == lexTokens.length - 1) return null;
         return lexTokens[position + 1]; // returns the next lexToken.
     }
 
