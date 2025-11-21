@@ -21,27 +21,27 @@ public class Driver {
         String stream = Files.readString(filePath);
 
         Lex lexicalAnalyser = new Lex(stream);
-        System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
+        System.out.println(Arrays.toString(lexicalAnalyser.getTokens()) + "\n");
 
         Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
-        printNode(syntaxAnalyser.parse());
+        //printNode(syntaxAnalyser.parse());
+        //System.out.println("\n");
+        //printError(syntaxAnalyser.getErrors());
 
-        System.out.println("\n");
-        printError(syntaxAnalyser.getErrors());
+        Semantic semanticAnalyser = new Semantic(syntaxAnalyser.parse());
+        boolean val = semanticAnalyser.parse();
     }
 
     public static void printNode(SyntaxNode node){
-        if (node != null){
-            System.out.println(node + ", line = " + node.lineNumber + ", offset = " + node.characterOffset);
-            for (SyntaxNode childNode : node.children) {
-                if (childNode != null){
-                    System.out.println("    (" + childNode + ", line = " + childNode.lineNumber + ", offset = " + childNode.characterOffset + ")");
-                }
+        System.out.println(node + ", line = " + node.lineNumber + ", offset = " + node.characterOffset);
+        for (SyntaxNode childNode : node.children) {
+            if (childNode != null){
+                System.out.println("    (" + childNode + ", line = " + childNode.lineNumber + ", offset = " + childNode.characterOffset + ")");
             }
-            for (SyntaxNode childNode : node.children) {
-                if (childNode != null){
-                    printNode(childNode);
-                }
+        }
+        for (SyntaxNode childNode : node.children) {
+            if (childNode != null){
+                printNode(childNode);
             }
         }
     }

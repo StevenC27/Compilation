@@ -1,1 +1,4 @@
-int x = 12 / 4 / 3;
+if (==(1, 2)){
+    int p = 2;
+    string name = "steven";
+}

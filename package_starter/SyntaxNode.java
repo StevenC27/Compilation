@@ -39,11 +39,6 @@ public class SyntaxNode {
 		this.children = new SyntaxNode[0];
 	}
 
-	public void addChild(SyntaxNode child) {
-		this.children = Arrays.copyOf(children, children.length + 1);
-		this.children[this.children.length-1] = child;
-	}
-
 	public String toString() {
 		if (type == PROGRAM)
 			return "PROGRAM";

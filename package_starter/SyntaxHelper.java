@@ -1,54 +1,71 @@
 import java.util.*;
 
 public class SyntaxHelper {
-    LexToken[] lexTokens;
-    List<SyntaxError> syntaxErrors;
-    int position;
+    LexToken[] lexTokens; // stores the lexTokens.
+    List<SyntaxError> syntaxErrors; // stores the lexErrors.
+    int position; // stores the position in the lexToken array.
 
     public SyntaxHelper(LexToken[] lexTokens){
-        this.lexTokens = lexTokens;
-        this.syntaxErrors = new ArrayList<>();
+        this.lexTokens = lexTokens; // iniailises the lexTokens.
+        this.syntaxErrors = new ArrayList<>(); // initialises the syntaxErrors.
         this.position = 0;
     }
 
     public SyntaxNode parseProgram(){
         // <program> ::= <statementList>
+
+        // initialises the programNode.
         SyntaxNode programNode = new SyntaxNode(SyntaxNode.PROGRAM, line(), offset(), "");
-        programNode.addChild(parseStatementList());
-        return programNode;
+
+        // parses statementList and adds to the programNode.
+        addChildNode(programNode, parseStatementList());
+        return programNode; // returns the programNode.
     }
 
     public SyntaxNode parseStatementList(){
         // <statementList> ::= <statement> ;
         // <statementList> ::= <statement> ; <statementList> ;
 
+        // initialises the statementListNode.
         SyntaxNode statementListNode = new SyntaxNode(SyntaxNode.STATEMENT_LIST, line(), offset(), "");
-        String token = currentToken().token;
 
-        if (endOfTokens()) {
+        // checks if there is no more tokens.
+        if (endOfTokens()){
+            // adds the end of tokens error.
             endOfTokenError();
         } else {
+            // parses statement and stores it in statementNode.
             SyntaxNode statementNode = parseStatement();
+
+            // checks if the statement is not empty.
             if (statementNode.children.length > 0){
-                statementListNode.addChild(statementNode);
+                // if the statement is not empty then add it to statementListNode.
+                addChildNode(statementListNode, statementNode);
+
+                // checks if there is no more tokens.
                 if (endOfTokens()){
+                    // adds the end of tokens error.
                     endOfTokenError();
-                } else if (compareToken(";", nextToken().token)){
-                    advance();
-                    if (endOfTokens()){
-                        endOfTokenError();
+                } else if (compareToken(";", currentToken().token)){
+                    // checks if the current token is ';'.
+
+                    // checks the next token is '}'
+                    if (compareToken("}", nextToken().token)){
+                        // if the next token is '}' then return the statementList since the end of a scope has been reached.
+                        return statementListNode;
                     } else {
-                        statementListNode.addChild(parseStatementList());
+                        // if the next token is not '}' then advance to the next token.
+                        advance();
+
+                        // checks if there is no more tokens.
                         if (endOfTokens()){
+                            // adds the end of tokens error.
                             endOfTokenError();
-                        } else if (compareToken(";", nextToken().token)){
-                            advance();
                         } else {
-                            unknownSyntaxError("Expected ';' but received unknown syntax.");
+                            // parses statementList and adds it to the statementListNode.
+                            addChildNode(statementListNode, parseStatementList());
                         }
                     }
-                } else {
-                    unknownSyntaxError("Expected ';' but received unknown syntax.");
                 }
             }
         }
@@ -57,83 +74,205 @@ public class SyntaxHelper {
 
     public SyntaxNode parseStatement(){
         // <statement> ::= <declaration> | <assignment> | <if> | <while>
+
+        // initialises the statementNode.
         SyntaxNode statementNode = new SyntaxNode(SyntaxNode.STATEMENT, line(), offset(), "");
+
+        // checks if the token is either "if" or "while" or if the type is type name or identifier.
         if (compareToken("if", currentToken().token)){
+            // if the token is "if" then parse if and add to statementNode.
             // Enter parseIf() with the current token being "if" keyword.
-            statementNode.addChild(parseIf());
+            addChildNode(statementNode, parseIf());
         } else if (compareToken("while", currentToken().token)){
+            // if the token is "while" then parse while and add to statementNode.
             // Enter parseWhile() with the current token being "while" keyword.
-            statementNode.addChild(parseWhile());
+            addChildNode(statementNode, parseWhile());
         } else if (currentToken().type == LexToken.TYPE_NAME){
+            // if the type is type name then parse declare and add to statementNode.
             // Enter parseDeclare() with the current token being a type name.
-            statementNode.addChild(parseDeclare());
+            addChildNode(statementNode, parseDeclare());
         } else if (currentToken().type == LexToken.IDENTIFIER){
+            // if the type is identifier then parse assign and add to statementNode.
             // Enter parseAssign() with the current token being an identifier.
-            statementNode.addChild(parseAssign());
+            addChildNode(statementNode, parseAssign());
         } else {
+            // if the next token does not meet these conditions then call unknown error.
             unknownSyntaxError("Expected <declaration>, <expression>, <if> or <while> but received unknown syntax.");
         }
-        return statementNode;
+
+        // checks if the nextToken is ';'.
+        if (compareToken(";", nextToken().token)){
+            // if the token is ';' then advance token.
+            advance();
+        }
+        return statementNode; // return statementNode.
     }
 
     public SyntaxNode parseIf(){
         // <if> ::= if ( <expression> ) <scope> | if ( <expression> ) <scope> else <scope>
 
+        // initialises the ifNode.
         SyntaxNode ifNode = new SyntaxNode(SyntaxNode.IF, line(), offset(), "");
-        advance();
-        String token;
-        if (compareToken("(", currentToken().token) && !endOfTokens()){
+
+        // checks if there is no more tokens.
+        if (endOfTokens()){
+            // adds the end of tokens error.
+            endOfTokenError();
+        } else if (compareToken("(", nextToken().token)){
+            // if the next token is '(' then advance token.
             advance();
-            token = currentToken().token;
-            ifNode.addChild(parseExpression());
-            token = currentToken().token;
-            if (compareToken(")", currentToken().token) && !endOfTokens()){
-                advance();
-                token = currentToken().token;
-                ifNode.addChild(parseScope());
-                token = currentToken().token;
-                if (compareToken("else", currentToken().token) && !endOfTokens()){
+            // checks if there is no more tokens.
+            if (endOfTokens()){
+                // adds the end of tokens error.
+                endOfTokenError();
+            } else {
+                // if end of tokens is not reached then attempt to parse expression and add to ifNode.
+                addChildNode(ifNode, parseExpression());
+                // checks if there is no more tokens.
+                if (endOfTokens()){
+                    // adds the end of tokens error.
+                    endOfTokenError();
+                } else if (compareToken(")", nextToken().token)){
+                    // if the next token is ')' then advance token.
                     advance();
-                    token = currentToken().token;
-                    ifNode.addChild(parseScope());
-                    token = currentToken().token;
+                    // checks if there is no more tokens.
+                    if (endOfTokens()){
+                        // adds the end of tokens error.
+                        endOfTokenError();
+                    } else if (compareToken("{", nextToken().token)){
+                        // if end of tokens is not reached then attempt to parse scope and add to ifNode.
+                        advance();
+                        // checks if there is no more tokens.
+                        if (endOfTokens()){
+                            // adds the end of tokens error.
+                            endOfTokenError();
+                        } else {
+                            // if the end of tokens is not reached then parse scope and adds it to ifNode.
+                            addChildNode(ifNode, parseScope());
+                            // checks if the current token is 'else'.
+                            if (compareToken("else", currentToken().token)){
+                                // checks if there is no more tokens.
+                                if (endOfTokens()){
+                                    // adds the end of tokens error.
+                                    endOfTokenError();
+                                } else {
+                                    // if the end of tokens is not reached then advance token.
+                                    advance();
+                                    // checks if there is no more tokens.
+                                    if (endOfTokens()){
+                                        // adds the end of tokens error.
+                                        endOfTokenError();
+                                    } else {
+                                        // if the end of tokens is not reached then parse scope and adds it to ifNode.
+                                        addChildNode(ifNode, parseScope());
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // if the token is not '{' then call unknown error.
+                        unknownSyntaxError("Expected '{' but received unknown syntax.");
+                    }
+                } else {
+                    // if the token is not ')' then call unknown error.
+                    unknownSyntaxError("Expected ')' but received unknown syntax.");
                 }
-            } else if (!endOfTokens()){
-                unknownSyntaxError("Expected ')' but received unknown syntax");
             }
-            return ifNode;
+        } else {
+            // if the token is not '(' then call unknown error.
+            unknownSyntaxError("Expected '(' but received unknown syntax.");
         }
-        endOfTokenError();
-        return ifNode;
+        return ifNode; // returns ifNode.
     }
 
     public SyntaxNode parseWhile(){
         // <while> ::= while ( <expression> ) <scope>
         SyntaxNode whileNode = new SyntaxNode(SyntaxNode.WHILE, line(), offset(), "");
-        advance();
-        advance();
-        whileNode.addChild(parseExpression());
-        advance();
-        whileNode.addChild(parseScope());
-        return whileNode;
+
+        // checks if there is no more tokens.
+        if (endOfTokens()){
+            // adds the end of tokens error.
+            endOfTokenError();
+        } else if (compareToken("(", nextToken().token)){
+            // if the next token is '(' then advance token.
+            advance();
+            // checks if there is no more tokens.
+            if (endOfTokens()){
+                // adds the end of tokens error.
+                endOfTokenError();
+            } else {
+                // if end of tokens is not reached then attempt to parse expression and add to whileNode.
+                addChildNode(whileNode, parseExpression());
+                // checks if there is no more tokens.
+                if (endOfTokens()){
+                    // adds the end of tokens error.
+                    endOfTokenError();
+                } else if (compareToken(")", nextToken().token)){
+                    // if the next token is ')' then advance token.
+                    advance();
+                    // checks if there is no more tokens.
+                    if (endOfTokens()){
+                        // adds the end of tokens error.
+                        endOfTokenError();
+                    } else if (compareToken("{", nextToken().token)){
+                        // if end of tokens is not reached then attempt to parse scope and add to whileNode.
+                        advance();
+                        // checks if there is no more tokens.
+                        if (endOfTokens()){
+                            // adds the end of tokens error.
+                            endOfTokenError();
+                        } else {
+                            // if the end of tokens is not reached then parse scope and adds it to whileNode.
+                            addChildNode(whileNode, parseScope());
+                        }
+                    } else {
+                        // if the token is not '{' then call unknown error.
+                        unknownSyntaxError("Expected '{' but received unknown syntax.");
+                    }
+                } else {
+                    // if the token is not ')' then call unknown error.
+                    unknownSyntaxError("Expected ')' but received unknown syntax.");
+                }
+            }
+        } else {
+            // if the token is not '(' then call unknown error.
+            unknownSyntaxError("Expected '(' but received unknown syntax.");
+        }
+        return whileNode; // returns whileNode.
     }
 
     public SyntaxNode parseScope(){
         // <scope> ::= { <statementList> }
-        SyntaxNode scopeNode = new SyntaxNode(SyntaxNode.SCOPE, line(), offset(), "");
-        advance();
-        String token = currentToken().token;
-        if (!endOfTokens()){
-            scopeNode.addChild(parseStatementList());
-            token = currentToken().token;
-            if (compareToken("}", currentToken().token)) {
-                advance();
-            }
-        } else {
-            //add error.
-        }
 
-        return scopeNode;
+        // initialises the scopeNode.
+        SyntaxNode scopeNode = new SyntaxNode(SyntaxNode.SCOPE, line(), offset(), "");
+
+        // advance token past the '{' token.
+        advance();
+
+        // check if the current token is '}'.
+        if (compareToken("}", currentToken().token)){
+            // if the token is '}' then advance token.
+            advance();
+        } else {
+            // checks if there is no more tokens.
+            if (endOfTokens()){
+                // adds the end of tokens error.
+                endOfTokenError();
+            } else {
+                // if the end of tokens is not reached then parse statementList and add to scopeNode.
+                addChildNode(scopeNode, parseStatementList());
+                // checks if there is no more tokens.
+                if (endOfTokens()) {
+                    // adds the end of tokens error.
+                    endOfTokenError();
+                } else if (!compareToken("}", nextToken().token)) {
+                    // if the token is not '}' then call unknown error.
+                    unknownSyntaxError("Expected } but received unknown syntax.");
+                }
+            }
+        }
+        return scopeNode; // returns scopeNode.
     }
 
     public SyntaxNode parseDeclare(){
@@ -145,7 +284,7 @@ public class SyntaxHelper {
         SyntaxNode declareNode = new SyntaxNode(SyntaxNode.DECLARE, line(), offset(), "");
 
         // parses the typeName and adds it to the declareNode.
-        declareNode.addChild(parseTerminal(SyntaxNode.TYPE_NAME));
+        addChildNode(declareNode, parseTerminal(SyntaxNode.TYPE_NAME));
 
         // in both cases of the declareNode, the next token is an identifier.
         advance(); // advances the token so that the current token should be an identifier.
@@ -156,18 +295,16 @@ public class SyntaxHelper {
             if (compareToken("=", nextToken().token)){
                 // adds assign to declareNode.
                 // enters parseAssign() with current token as identifier.
-                declareNode.addChild(parseAssign());
+                addChildNode(declareNode, parseAssign());
             } else {
                 // if the token is not '=' then adds identifier to declareNode.
-                declareNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+                addChildNode(declareNode, parseTerminal(SyntaxNode.IDENTIFIER));
             }
         } else {
             // if the token was not an identifier which we expected then call unknownSyntaxError.
             unknownSyntaxError("Expected identifier but received unknown syntax.");
         }
-
-        // returns the declareNode.
-        return declareNode;
+        return declareNode; // returns the declareNode.
     }
 
     public SyntaxNode parseAssign(){
@@ -178,7 +315,7 @@ public class SyntaxHelper {
 
         // the current token when entering parseAssign() is an identifier.
         // adds the identifier to assignNode.
-        assignNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+        addChildNode(assignNode, parseTerminal(SyntaxNode.IDENTIFIER));
 
         // checks if the next token is '='.
         if (compareToken("=", nextToken().token)){
@@ -189,7 +326,8 @@ public class SyntaxHelper {
                 endOfTokenError();
             } else if (compareType(LexToken.LITERAL_STRING, nextToken().type)) {
                 // checks if the next token is a string and adds it to assignNode if it is.
-                assignNode.addChild(parseTerminal(SyntaxNode.STRING));
+                advance();
+                addChildNode(assignNode, parseTerminal(SyntaxNode.STRING));
             } else if (compareType(LexToken.LITERAL_NUMBER, nextToken().type)
                     || compareType(LexToken.IDENTIFIER, nextToken().type)
                     || compareToken("(", nextToken().token)
@@ -198,7 +336,7 @@ public class SyntaxHelper {
                 // checks if the next token is either a '(' and '==' since an expression can start with these tokens.
                 // if it does then add an expression to the assignNode.
                 // enters parseExpression() with current token as '='.
-                assignNode.addChild(parseExpression());
+                addChildNode(assignNode, parseExpression());
             } else {
                 // if the syntax is not the expected syntax then add an unknown error.
                 unknownSyntaxError("Unknown syntax, expected <Expression> or string");
@@ -216,13 +354,13 @@ public class SyntaxHelper {
         // checks if the next token is '=='.
         if (compareToken("==", nextToken().token)){
             // if the token is '==' then add comparison to the expressionNode.
-            expressionNode.addChild(parseComparison());
+            addChildNode(expressionNode, parseComparison());
         } else if (compareType(LexToken.LITERAL_NUMBER, nextToken().type)
                 || compareType(LexToken.IDENTIFIER, nextToken().type)
                 || compareToken("(", nextToken().token)){
             // checks if the next token is '(' or the next type is a number or identifier.
             // if true then add math to the expressionNode.
-            expressionNode.addChild(parseMath());
+            addChildNode(expressionNode, parseMath());
         } else {
             // if the syntax is not the expected syntax then add an unknown error.
             unknownSyntaxError("Expected <math> or <expression>, received unknown syntax.");
@@ -235,30 +373,29 @@ public class SyntaxHelper {
 
         // initialises the mathNode.
         SyntaxNode mathNode = new SyntaxNode(SyntaxNode.MATH, line(), offset(), "");
-        String token = currentToken().token;
         // parse term and store it in the termNode.
         SyntaxNode termNode = parseTerm();
-        token = currentToken().token;
+
         // checks if the next token is '+'.
         if (compareToken("+", nextToken().token)) {
             // if the token is '+' then create a tempMathNode to add the termNode to.
             SyntaxNode tempMathNode = new SyntaxNode(SyntaxNode.MATH, line(), offset(), "");
-            tempMathNode.addChild(termNode);
+            addChildNode(tempMathNode, termNode);
 
             // then parse the math addition operation with the tempMathNode and add it to the mathNode.
-            // enter parseMathOperation() with current token '+'/.
-            mathNode.addChild(parseMathOperation(tempMathNode, SyntaxNode.MATH_ADD));
+            // return parseMathOperation with tempMathNode as input node and subtract as the operation.
+            return parseMathOperation(tempMathNode, SyntaxNode.MATH_ADD);
         } else if (compareToken("-", nextToken().token)) {
             // if the token is '-' then create a tempMathNode to add the termNode to.
             SyntaxNode tempMathNode = new SyntaxNode(SyntaxNode.MATH, line(), offset(), "");
-            tempMathNode.addChild(termNode);
+            addChildNode(tempMathNode, termNode);
 
             // then parse the math subtraction operation with the tempMathNode and add it to the mathNode.
-            // enter parseMathOperation() with current token '-'/.
-            mathNode.addChild(parseMathOperation(tempMathNode, SyntaxNode.MATH_SUBTRACT));
+            // return parseMathOperation with tempMathNode as input node and subtract as the operation.
+            return parseMathOperation(tempMathNode, SyntaxNode.MATH_SUBTRACT);
         } else {
             // if there is no operation then add termNode to mathNode.
-            mathNode.addChild(termNode);
+            addChildNode(mathNode, termNode);
         }
         return mathNode; // return mathNode.
     }
@@ -270,35 +407,34 @@ public class SyntaxHelper {
         // current token is '+' at start of the function.
         advance(); // advances past '+' token.
 
-        // parse term and store it in the termNode.
-        if (endOfTokens()) {
-            endOfTokens();
+        // checks if there is no more tokens.
+        if (endOfTokens()){
+            // adds the end of tokens error.
+            endOfTokenError();
         } else {
+            // parses term and stores in termNode.
             SyntaxNode termNode = parseTerm();
 
             // checks for nested operations.
             // checks if the next token is '+'.
-            if (compareToken("+", currentToken().token)){
+            if (compareToken("+", nextToken().token)){
                 // if the token is '+' then create innerMathAddNode to store the mathNode and termNode.
                 SyntaxNode innerMathAddNode = new SyntaxNode(operationType, line(), offset(), "");
-                innerMathAddNode.addChild(mathNode);
-                innerMathAddNode.addChild(termNode);
-
+                addChildNode(innerMathAddNode, mathNode);
+                addChildNode(innerMathAddNode, termNode);
                 // then parse the math addition operation with innerMathAddNode.
                 return parseMathOperation(innerMathAddNode, SyntaxNode.MATH_ADD);
-            } else if (compareToken("-", currentToken().token)){
+            } else if (compareToken("-", nextToken().token)){
                 // if the token is '-' then create innerMathSubtractNode to store the mathNode and termNode.
                 SyntaxNode innerMathSubtractNode = new SyntaxNode(operationType, line(), offset(), "");
-                innerMathSubtractNode.addChild(mathNode);
-                innerMathSubtractNode.addChild(termNode);
-
+                addChildNode(innerMathSubtractNode, mathNode);
+                addChildNode(innerMathSubtractNode, termNode);
                 // then parse the math subtraction operation with innerMathSubtractNode.
                 return parseMathOperation(innerMathSubtractNode, SyntaxNode.MATH_SUBTRACT);
             } else {
                 // if there is no nested operations then add the mathNode and termNode to mathOperationNode
-                mathOperationNode.addChild(mathNode);
-                mathOperationNode.addChild(termNode);
-
+                addChildNode(mathOperationNode, mathNode);
+                addChildNode(mathOperationNode, termNode);
             }
         }
         return mathOperationNode; // return mathOperationNode.
@@ -311,37 +447,37 @@ public class SyntaxHelper {
         // Adds the termNode to the termOperationNode.
         advance(); // advances the token.
 
-        // parse term and store it in the termNode.
-        if (endOfTokens()) {
-            endOfTokens();
+        // checks if there is no more tokens.
+        if (endOfTokens()){
+            // adds the end of tokens error.
+            endOfTokenError();
         } else {
             SyntaxNode factorNode = parseFactor();
-
             // checks for nested operations.
             // checks if the next token is '*' or '/'.
-            if (compareToken("*", currentToken().token)){
+            if (compareToken("*", nextToken().token)){
                 // if the token is '*' then create innerTermMultiplyNode to store the termNode and factorNode.
                 SyntaxNode innerTermMultiplyNode = new SyntaxNode(operationType, line(), offset(), "");
-                innerTermMultiplyNode.addChild(termNode);
-                innerTermMultiplyNode.addChild(factorNode);
+                addChildNode(innerTermMultiplyNode, termNode);
+                addChildNode(innerTermMultiplyNode, factorNode);
 
                 // then parse the math multiplication operation with innerTermMultiplyNode.
                 return parseTermOperation(innerTermMultiplyNode, SyntaxNode.TERM_MULTIPLY);
-            } else if (compareToken("/", currentToken().token)){
+            } else if (compareToken("/", nextToken().token)){
                 // if the token is '/' then create innerTermDivideNode to store the termNode and factorNode.
                 SyntaxNode innerTermDivideNode = new SyntaxNode(operationType, line(), offset(), "");
-                innerTermDivideNode.addChild(termNode);
-                innerTermDivideNode.addChild(factorNode);
+                addChildNode(innerTermDivideNode, termNode);
+                addChildNode(innerTermDivideNode, factorNode);
 
                 // then parse the math division operation with innerTermDivideNode.
                 return parseTermOperation(innerTermDivideNode, SyntaxNode.TERM_DIVIDE);
             } else {
                 // if there is no nested operations then add the termNode and factorNode to termOperationNode.
-                termOperationNode.addChild(termNode);
-                termOperationNode.addChild(factorNode);
+                addChildNode(termOperationNode, termNode);
+                addChildNode(termOperationNode, factorNode);
             }
         }
-        return termOperationNode;
+        return termOperationNode; // return termOperationNode.
     }
 
     public SyntaxNode parseComparison(){
@@ -365,7 +501,7 @@ public class SyntaxHelper {
                 endOfTokenError();
             } else {
                 // if the end of the tokens is not reached then parse expression and add to comparisonNode.
-                comparisonNode.addChild(parseExpression());
+                addChildNode(comparisonNode, parseExpression());
 
                 // checks if there is no more tokens.
                 if (endOfTokens()){
@@ -381,13 +517,14 @@ public class SyntaxHelper {
                         endOfTokenError();
                     } else {
                         // if the end of the tokens is not reached then parse expression and add to comparisonNode.
-                        comparisonNode.addChild(parseExpression());
+                        addChildNode(comparisonNode, parseExpression());
 
                         // checks if there is no more tokens.
                         if (endOfTokens()){
                             // adds the end of tokens error.
                             endOfTokenError();
                         } else if (compareToken(")", nextToken().token)){
+                            advance();
                             // checks if the next token is ')'.
                             return comparisonNode; // returns comparisonNode.
                         } else {
@@ -412,7 +549,6 @@ public class SyntaxHelper {
 
         // creates a container for the factorNode.
         SyntaxNode factorNode;
-        String token = currentToken().token;
         // checks if the next node is an identifier or a number.
         if (compareType(LexToken.IDENTIFIER, nextToken().type)
                 || compareType(LexToken.LITERAL_NUMBER, nextToken().type)){
@@ -422,9 +558,9 @@ public class SyntaxHelper {
             factorNode = new SyntaxNode(SyntaxNode.FACTOR, line(), offset(), "");
 
             if (compareType(LexToken.IDENTIFIER, nextToken().type)){
-                factorNode.addChild(parseTerminal(SyntaxNode.IDENTIFIER));
+                addChildNode(factorNode, parseTerminal(SyntaxNode.IDENTIFIER));
             } else {
-                factorNode.addChild(parseTerminal(SyntaxNode.NUMBER));
+                addChildNode(factorNode, parseTerminal(SyntaxNode.NUMBER));
             }
         } else if (compareToken("(", nextToken().token)) {
             // initialises the factorNode.
@@ -437,7 +573,7 @@ public class SyntaxHelper {
                 endOfTokenError();
             } else {
                 // if the end of the tokens isn't reached then add parseExpression() to factorNode.
-                factorNode.addChild(parseExpression());
+                addChildNode(factorNode, parseExpression());
                 if (endOfTokens()){
                     endOfTokenError();
                 } else if (compareToken(")", nextToken().token)){
@@ -466,73 +602,75 @@ public class SyntaxHelper {
         // checks if the token after the factor is the '*' or '/' token.
         if (compareToken("*", nextToken().token)) {
             SyntaxNode tempTermNode = new SyntaxNode(SyntaxNode.TERM, line(), offset(), "");
-            tempTermNode.addChild(factorNode);
+            addChildNode(tempTermNode, factorNode);
             // if the token is '*' then returns parseTermMultiply.
             return parseTermOperation(tempTermNode, SyntaxNode.TERM_MULTIPLY);
         } else if (compareToken("/", nextToken().token)) {
             SyntaxNode tempTermNode = new SyntaxNode(SyntaxNode.TERM, line(), offset(), "");
-            tempTermNode.addChild(tempTermNode);
+            addChildNode(tempTermNode, factorNode);
             // if the token is '/' then returns parseTermDivide.
             return parseTermOperation(tempTermNode, SyntaxNode.TERM_DIVIDE);
         } else {
             // if the token is not either '*' or '/' then add the factorNode to the termNode.
-            termNode.addChild(factorNode);
+            addChildNode(termNode, factorNode);
         }
         return termNode; // return termNode.
     }
 
     public SyntaxNode parseTerminal(int type){
+        // returns a new SyntaxNode for the type given.
         return new SyntaxNode(type, line(), offset(), currentToken().token);
     }
 
     public void advance(){
-        this.position++;
+        this.position++; // increments the position.
     }
 
     public boolean endOfTokens(){
-        return nextToken() == null;
+        return nextToken() == null; // returns true if next token is null and false otherwise.
     }
 
     public int line(){
-        return currentToken().lineNumber;
+        return currentToken().lineNumber; // returns the lineNumber of the current token.
     }
 
     public int offset(){
-        return currentToken().characterOffset;
-    }
-
-    public int lastLine(){
-        return lexTokens[lexTokens.length-1].lineNumber;
-    }
-
-    public int lastOffset(){
-        LexToken lastToken = lexTokens[lexTokens.length-1];
-        return lastToken.characterOffset + lastToken.token.length();
+        return currentToken().characterOffset; // returns the characterOffset of the current token.
     }
 
     public LexToken currentToken(){
-        if (position >= lexTokens.length) return null;
-        return lexTokens[position];
+        return lexTokens[position]; // returns the current lexToken.
     }
 
     public LexToken nextToken(){
-        if (position >= lexTokens.length - 1) return null;
-        return lexTokens[position + 1];
+        return lexTokens[position + 1]; // returns the next lexToken.
     }
 
-    public boolean compareType(int expectedType, int realType){
-        return expectedType == realType;
+    public boolean compareType(int expectedType, int actualType){
+        return expectedType == actualType; // returns true of the expected type is equal to the actual type.
     }
 
-    public boolean compareToken(String expectedToken, String realToken){
-        return Objects.equals(expectedToken, realToken);
+    public boolean compareToken(String expectedToken, String actualType){
+        return Objects.equals(expectedToken, actualType); // returns true if the expectedToken is equal to the actual type.
+    }
+
+    public void addChildNode(SyntaxNode parent, SyntaxNode child) {
+        // creates a copy of the current children array with a length of +1 and stores it as the new children array.
+        parent.children = Arrays.copyOf(parent.children, parent.children.length + 1);
+        // adds the childNode to the end of the children array.
+        parent.children[parent.children.length-1] = child;
     }
 
     public void endOfTokenError(){
-        syntaxErrors.add(new SyntaxError(SyntaxError.OTHER, lastLine(), lastOffset(), "End of tokens."));
+        // adds a new error to syntaxErrors of type OTHER for the end of tokens.
+        syntaxErrors.add(new SyntaxError(SyntaxError.OTHER,
+                lexTokens[lexTokens.length - 1].lineNumber,
+                lexTokens[lexTokens.length - 1].characterOffset,
+                "End of tokens."));
     }
 
     public void unknownSyntaxError(String message){
+        // adds a new error to syntaxErrors of type UNKNOWN_SYNTAX for unknown syntax.
         syntaxErrors.add(new SyntaxError(SyntaxError.UNKNOWN_SYNTAX, line(), offset(), message));
     }
 }

@@ -1,13 +1,12 @@
 public class Semantic {
-
+	SemanticHelper helper;
 	Semantic(SyntaxNode tree){
-
+		helper = new SemanticHelper(tree);
 	}
 	
-	Boolean parse()
-		{
+	Boolean parse() {
 		return false;
-		}
+	}
 	
 	SemanticError[] getErrors()
 		{
