@@ -1,8 +1,11 @@
 int x = 1;
-x = 2;
-bool y = ==(x, 1);
+int y = 5;
+int z = 3 / y;
 
 if (==(1, 2)){
-    int p = 2;
-    string name = "steven";
+    int p = 2 / y;
+    string name = "ste";
+    if (1){
+        int x = 1;
+    }
 }

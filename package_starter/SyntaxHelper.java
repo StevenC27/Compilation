@@ -543,8 +543,8 @@ public class SyntaxHelper {
 
             // initialises the factorNode and adds the current token to the current.
             factorNode = new SyntaxNode(SyntaxNode.FACTOR, line(), offset(), "");
-
-            if (compareType(LexToken.IDENTIFIER, nextToken().type)){
+            String token = currentToken().token;
+            if (compareType(LexToken.IDENTIFIER, currentToken().type)){
                 addChildNode(factorNode, parseTerminal(SyntaxNode.IDENTIFIER));
             } else {
                 addChildNode(factorNode, parseTerminal(SyntaxNode.NUMBER));

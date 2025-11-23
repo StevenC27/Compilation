@@ -1,7 +1,7 @@
 import java.util.*;
 
 public class SemanticHelper {
-    private List<Identifier> symbolTable;
+    private List<Symbol> symbolTable;
     private Stack<Map<String, Integer>> scopeStack;
     private boolean isNoErrors;
 
@@ -66,15 +66,17 @@ public class SemanticHelper {
         // <declaration> ::= typename identifier
         // <declaration> ::= typename <assignment>
         String identifierType = declareNode.children[0].token;
-        String identifierName;
         if (declareNode.children[1].type == SyntaxNode.IDENTIFIER){
-            identifierName = declareNode.children[1].token;
+            String identifierName = declareNode.children[1].token;
+            Symbol symbol = new Symbol(identifierType, identifierName);
+            addIdentifier(symbol);
         } else {
-            identifierName = declareNode.children[1].children[0].token;
+            SyntaxNode assignNode = declareNode.children[1];
+            String identifierName = assignNode.children[0].token;
+            Symbol symbol = new Symbol(identifierType, identifierName);
+            addIdentifier(symbol);
+            parseAssign(assignNode);
         }
-
-        Identifier symbol = new Identifier(identifierType, identifierName);
-        addIdentifier(symbol);
     }
 
     public void parseAssign(SyntaxNode assignNode){
@@ -83,7 +85,13 @@ public class SemanticHelper {
 
         // need to check the variable exists in the symbol table.
         String identifier = assignNode.children[0].token;
-        if (checkScopeSymbolExists(identifier)){
+        Symbol symbol = findAllScopeSymbol(identifier);
+        if (symbol != null){
+            if (!((Objects.equals(symbol.getType(), "int") && Objects.equals(getType(assignNode.children[1]), "bool"))
+                    || Objects.equals(symbol.getType(), getType(assignNode.children[1])))){
+                isNoErrors = false;
+            }
+        } else {
             isNoErrors = false;
         }
     }
@@ -94,37 +102,89 @@ public class SemanticHelper {
         scopeStack.pop();
     }
 
-    public void addIdentifier(Identifier identifier){
-        if (checkScopeSymbolExists(identifier.getIdentifier())){
+    public String getType(SyntaxNode node){
+        if (node.type == SyntaxNode.IDENTIFIER){
+            Symbol symbol = findAllScopeSymbol(node.token);
+            if (symbol != null){
+                return symbol.getType();
+            } else {
+                return null;
+            }
+        } else if (node.type == SyntaxNode.STRING){
+            return "string";
+        } else if (node.type == SyntaxNode.NUMBER){
+            return "int";
+        } else if (node.type == SyntaxNode.COMPARISON){
+            checkComparisonTypes(node);
+            return "bool";
+        } else if (node.type == SyntaxNode.FACTOR
+                || node.type == SyntaxNode.TERM
+                || node.type == SyntaxNode.MATH){
+            return getType(node.children[0]);
+        } else if (node.type == SyntaxNode.TERM_MULTIPLY || node.type == SyntaxNode.TERM_DIVIDE
+                || node.type == SyntaxNode.MATH_ADD || node.type == SyntaxNode.MATH_SUBTRACT){
+            checkOperationTypes(node);
+            return "int";
+        } else if (node.type == SyntaxNode.EXPRESSION){
+            if (node.children[0].type == SyntaxNode.COMPARISON){
+                checkComparisonTypes(node.children[0]);
+                return "bool";
+            } else {
+                return getType(node.children[0]);
+            }
+        }
+        return null;
+    }
+
+    public void checkComparisonTypes(SyntaxNode comparisonNode){
+        // <comparison> ::= ( <expression> , <expression> )
+        String firstExpressionType = getType(comparisonNode.children[0]);
+        String secondExpressionType = getType(comparisonNode.children[1]);
+        if (!Objects.equals(firstExpressionType, secondExpressionType)){
+            isNoErrors = false;
+        };
+    }
+
+    public void checkOperationTypes(SyntaxNode operationNode){
+        SyntaxNode childTermNode = operationNode.children[0];
+        SyntaxNode childFactorNode = operationNode.children[1];
+
+        if (!(Objects.equals(getType(childTermNode), "int")
+                && Objects.equals(getType(childFactorNode), "int"))){
+            isNoErrors = false;
+        }
+    }
+
+    public void addIdentifier(Symbol symbol){
+        if (findAllScopeSymbol(symbol.getIdentifier()) != null){
             isNoErrors = false;
         } else {
-            symbolTable.add(identifier);
-            scopeStack.peek().put(identifier.getIdentifier(), symbolTable.size()-1);
+            symbolTable.add(symbol);
+            scopeStack.peek().put(symbol.getIdentifier(), symbolTable.size() - 1);
         }
     }
 
-    public boolean checkSymbolExists(Identifier identifier){
-        boolean symbolExists = false;
-        for (Identifier symbol : symbolTable){
-            if (Objects.equals(symbol.getType(), identifier.getType())
-                    || Objects.equals(symbol.getIdentifier(), identifier.getIdentifier())){
-                symbolExists = true;
-                break;
-            }
-        }
-        return symbolExists;
-    }
-
-    public boolean checkScopeSymbolExists(String identifier){
-        boolean symbolExists = false;
-        Map<String, Integer> currentScope = scopeStack.peek();
-        for (String symbol : currentScope.keySet()){
+    public Symbol findScopeSymbol(Map<String, Integer> scope, String identifier){
+        Symbol targetSymbol = null;
+        for (String symbol : scope.keySet()){
             if (Objects.equals(symbol, identifier)){
-                symbolExists = true;
+                int symbolIndex = scope.get(symbol);
+                targetSymbol = symbolTable.get(symbolIndex);
                 break;
             }
         }
-        return symbolExists;
+        return targetSymbol;
+    }
+
+    public Symbol findAllScopeSymbol(String identifier){
+        Symbol targetSymbol = null;
+        for (Map<String, Integer> scope : scopeStack){
+            Symbol symbol = findScopeSymbol(scope, identifier);
+            if (symbol != null){
+                targetSymbol = symbol;
+            }
+        }
+        return targetSymbol;
     }
 
     public boolean isNoErrors(){

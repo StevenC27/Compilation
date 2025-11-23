@@ -6,32 +6,21 @@ import java.util.Arrays;
 public class Driver {
 
     public static void main(String[] args) throws IOException {
-        /*for (int i = 1; i <= 5; i++){
-            Path filePath = Path.of("./package_starter/input_given/syntax" + i + ".txt");
+        Driver driver = new Driver();
+        driver.test();
+    }
+
+    public void test() throws IOException {
+        for (int i = 1; i <= 6; i++){
+            Path filePath = Path.of("./package_starter/input_given/semantic" + i + ".txt");
             String stream = Files.readString(filePath);
 
             Lex lexicalAnalyser = new Lex(stream);
-            System.out.println(Arrays.toString(lexicalAnalyser.getTokens()));
-
             Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
-            System.out.println(syntaxAnalyser.parse());
-        }*/
-
-        Path filePath = Path.of("./package_starter/input_given/syntax6.txt");
-        String stream = Files.readString(filePath);
-
-        Lex lexicalAnalyser = new Lex(stream);
-        System.out.println(Arrays.toString(lexicalAnalyser.getTokens()) + "\n");
-
-        Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
-        SyntaxNode syntax = syntaxAnalyser.parse();
-        printNode(syntax);
-        System.out.println("\n");
-        printError(syntaxAnalyser.getErrors());
-
-        Semantic semanticAnalyser = new Semantic(syntax);
-        boolean val = semanticAnalyser.parse();
-        System.out.println("\n" + val);
+            SyntaxNode tree = syntaxAnalyser.parse();
+            Semantic semanticAnalyser = new Semantic(tree);
+            System.out.println("File: semantic" + i + ", parsing: " + semanticAnalyser.parse() + "\n");
+        }
     }
 
     public static void printNode(SyntaxNode node){

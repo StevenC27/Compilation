@@ -1,8 +1,8 @@
-public class Identifier {
+public class Symbol {
     private String type;
     private String identifier;
 
-    public Identifier(String type, String identifier){
+    public Symbol(String type, String identifier){
         this.type = type;
         this.identifier = identifier;
     }
