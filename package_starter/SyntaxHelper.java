@@ -6,7 +6,7 @@ public class SyntaxHelper {
     int position; // stores the position in the lexToken array.
 
     public SyntaxHelper(LexToken[] lexTokens){
-        this.lexTokens = lexTokens; // iniailises the lexTokens.
+        this.lexTokens = lexTokens; // initialises the lexTokens.
         this.syntaxErrors = new ArrayList<>(); // initialises the syntaxErrors.
         this.position = 0;
     }
@@ -89,7 +89,9 @@ public class SyntaxHelper {
         }
 
         // checks if the nextToken is ';'.
-        if (compareToken(";", nextToken().token)){
+        if (endOfTokens()){
+            return statementNode;
+        } else if (compareToken(";", nextToken().token)){
             // if the token is ';' then advance token.
             advance();
         }

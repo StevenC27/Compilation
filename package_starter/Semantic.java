@@ -5,7 +5,7 @@ public class Semantic {
 	}
 	
 	Boolean parse() {
-		return false;
+		return helper.isNoErrors();
 	}
 	
 	SemanticError[] getErrors()
