@@ -7,10 +7,22 @@ public class Driver {
 
     public static void main(String[] args) throws IOException {
         Driver driver = new Driver();
-        driver.test();
+        driver.testLexical();
+        //driver.testSemantic();
     }
 
-    public void test() throws IOException {
+    public void testLexical() throws IOException {
+        for (int i = 1; i <= 5; i++){
+            Path filePath = Path.of("./package_starter/input_given/lex" + i + ".txt");
+            String stream = Files.readString(filePath);
+
+            Lex lexicalAnalyser = new Lex(stream);
+            System.out.println("File: lex" + i + ",     Tokens: " + Arrays.toString(lexicalAnalyser.getTokens()));
+            System.out.println("File: lex" + i + ",     Errors: " + Arrays.toString(lexicalAnalyser.getErrors()) + "\n");
+        }
+    }
+
+    public void testSemantic() throws IOException {
         for (int i = 1; i <= 6; i++){
             Path filePath = Path.of("./package_starter/input_given/semantic" + i + ".txt");
             String stream = Files.readString(filePath);
