@@ -12,7 +12,7 @@ public class Driver {
     }
 
     public void testLexical() throws IOException {
-        for (int i = 1; i <= 5; i++){
+        for (int i = 1; i <= 6; i++){
             Path filePath = Path.of("./package_starter/input_given/lex" + i + ".txt");
             String stream = Files.readString(filePath);
 
