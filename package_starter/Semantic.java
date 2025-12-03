@@ -1,15 +1,14 @@
 public class Semantic {
-	SemanticHelper helper;
+	SemanticHelper semanticHelper;
 	Semantic(SyntaxNode tree){
-		helper = new SemanticHelper(tree);
+		semanticHelper = new SemanticHelper(tree);
 	}
 	
 	Boolean parse() {
-		return helper.isNoErrors();
+		return !semanticHelper.isErrors(); // returns true if there are no errors and false otherwise.
 	}
 	
-	SemanticError[] getErrors()
-		{
-		return null;
-		}
+	SemanticError[] getErrors() {
+		return semanticHelper.getErrors().toArray(new SemanticError[0]); // returns the semanticErrors from semanticHelper.
+	}
 }

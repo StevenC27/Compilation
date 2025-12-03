@@ -1,11 +1,5 @@
-int x = 1;
-int y = 5;
-int z = 3 / y;
+int x = 1 - 6 / 2;
 
-if (==(1, 2)){
-    int p = 2 / y;
-    string name = "ste";
-    if (1){
-        int x = 1;
-    }
+while (==(1, 1)){
+    int x = 1;
 }

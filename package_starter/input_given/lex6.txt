@@ -1,1 +1,1 @@
-string y = "this is\n a \"string"
+int y = "hi";

@@ -8,7 +8,8 @@ public class Driver {
     public static void main(String[] args) throws IOException {
         Driver driver = new Driver();
         driver.testLexical();
-        //driver.testSemantic();
+        driver.testSyntax();
+        driver.testSemantic();
     }
 
     public void testLexical() throws IOException {
@@ -22,16 +23,45 @@ public class Driver {
         }
     }
 
+    public void testSyntax() throws IOException{
+        for (int i = 1; i <= 6; i++){
+            Path filePath = Path.of("./package_starter/input_given/syntax" + i + ".txt");
+            String stream = Files.readString(filePath);
+
+            Lex lexicalAnalyser = new Lex(stream);
+            LexToken[] lexTokens = lexicalAnalyser.getTokens();
+            LexError[] lexErrors = lexicalAnalyser.getErrors();
+            System.out.println("File: syntax" + i + ",     LexTokens: " + Arrays.toString(lexTokens));
+            System.out.println("File: syntax" + i + ",     LexErrors: " + Arrays.toString(lexErrors) + "\n");
+
+            Syntax syntaxAnalyser = new Syntax(lexTokens);
+            SyntaxNode tree = syntaxAnalyser.parse();
+            SyntaxError[] syntaxErrors = syntaxAnalyser.getErrors();
+            printNode(tree);
+            System.out.println("\nFile: syntax" + i + ",     SyntaxErrors: " + Arrays.toString(syntaxErrors) + "\n");
+        }
+    }
+
     public void testSemantic() throws IOException {
         for (int i = 1; i <= 6; i++){
             Path filePath = Path.of("./package_starter/input_given/semantic" + i + ".txt");
             String stream = Files.readString(filePath);
 
             Lex lexicalAnalyser = new Lex(stream);
-            Syntax syntaxAnalyser = new Syntax(lexicalAnalyser.getTokens());
+            LexToken[] lexTokens = lexicalAnalyser.getTokens();
+            LexError[] lexErrors = lexicalAnalyser.getErrors();
+            //System.out.println("File: semantic" + i + ", LexTokens: " + Arrays.toString(lexTokens));
+            //System.out.println("File: semantic" + i + ", LexErrors: " + Arrays.toString(lexErrors) + "\n");
+
+            Syntax syntaxAnalyser = new Syntax(lexTokens);
             SyntaxNode tree = syntaxAnalyser.parse();
+            SyntaxError[] syntaxErrors = syntaxAnalyser.getErrors();
+            //printNode(tree);
+            //System.out.println("\nFile: semantic" + i + ", SyntaxErrors: " + Arrays.toString(syntaxErrors) + "\n");
+
             Semantic semanticAnalyser = new Semantic(tree);
-            System.out.println("File: semantic" + i + ", parsing: " + semanticAnalyser.parse() + "\n");
+            System.out.println("File: semantic" + i + ", parsing: " + semanticAnalyser.parse());
+            System.out.println("File: semantic" + i + ", SemanticErrors: " + Arrays.toString(semanticAnalyser.getErrors()) + "\n");
         }
     }
 

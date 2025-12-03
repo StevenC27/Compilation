@@ -30,9 +30,10 @@ public class LexHelper {
         lineNumber = 1;
         characterOffset = 0;
         charIndex = 0;
+        updateCurrentChar();
 
         // loops through the characters in the input string.
-        while (nextCharExists()){
+        while (charExists(charIndex)){
             updateCurrentChar(); // updates the currentChar variable.
 
             // checks if currentChar is not a valid character.
@@ -42,12 +43,26 @@ public class LexHelper {
             } else if (currentChar == '"'){
                 // checks if currentChar is '"' and if it is then enter tokeniseString() where a string is tokenised.
                 tokeniseString();
-            } else if (Objects.equals(currentToken, "")){
-                // checks if the current token is empty.
-                // if so then checks that currentChar is not whitespace.
+
+                // checks if the currentToken is empty.
+                // if it is that means a new token was created meaning a new token needs to be tokenised.
+                // so continue to the beginning of the loop.
+                if (currentToken.isEmpty()){
+                    continue;
+                }
+            } else if (currentToken.isEmpty()){
+                // checks if the currentToken is empty.
+
+                // checks that the currentChar is not whitespace.
                 if (!isWhitespace(currentChar)){
-                    // if currentChar is not whitespace then calls updateToken() to add currentChar to the currentToken.
-                    updateToken();
+                    updateToken(); // updates the token.
+
+                    // checks if the next char doesn't exist.
+                    if (!charExists(charIndex + 1)){
+                        // if it doesn't then update the tokenType and end token.
+                        tokenType = getTokenType();
+                        endToken();
+                    }
                 }
             } else {
                 // if none of the above occurs then check the current token type.
@@ -55,13 +70,10 @@ public class LexHelper {
 
                 // checks the cases of tokenType.
                 switch (tokenType){
-                    case LexToken.KEYWORD, LexToken.TYPE_NAME:
-                        // if tokenType is a keyword or a typename then enter tokeniseKeyType().
-                        tokeniseKeyType();
-                        break;
-                    case LexToken.IDENTIFIER, LexToken.LITERAL_NUMBER:
-                        // if tokenType is an identifier or a literal number then enter tokeniseNumberIdentifier().
-                        tokeniseNumberIdentifier();
+                    case LexToken.KEYWORD, LexToken.TYPE_NAME, LexToken.IDENTIFIER, LexToken.LITERAL_NUMBER:
+                        // if tokenType is a keyword, typename, identifier or literal number then
+                        // call tokeniseNonSyntax().
+                        tokeniseNonSyntax();
                         break;
                     case LexToken.SYNTAX_TOKEN:
                         // if tokenType is a syntax token then enter tokeniseSyntax();
@@ -100,8 +112,7 @@ public class LexHelper {
                     characterOffset++;
                     break;
             }
-
-            advanceChar(); // advances the charIndex.
+            advanceChar(); // advances charIndex.
         }
     }
 
@@ -109,15 +120,12 @@ public class LexHelper {
         tokenType = LexToken.LITERAL_STRING;
         advanceChar(); // advances the charIndex.
         characterOffset++; // increments characterOffset by 1;
-        while (nextCharExists()){
+        while (charExists(charIndex)){
             updateCurrentChar(); // updates the currentChar variable.
 
-            // checks if currentChar is not a valid character.
-            if (isNotValidChar(currentChar)){
-                // if true then creates an error of type UNKNOWN_ENTITY and adds it to the lexErrors arraylist.
-                lexErrors.add(new LexError(LexError.UNKNOWN_ENTITY, lineNumber, characterOffset + currentToken.length(), "Unknown entity"));
-            } else if (currentChar == '"') {
+            if (currentChar == '"') {
                 // checks if the currentChar is '"' and breaks out of the loop is true.
+                characterOffset++;
                 break;
             } else if (currentChar == '\n' || currentChar == '\r' || currentChar == '\t'){
                 // checks if the currentChar is '\n', '\r' or '\t'.
@@ -125,7 +133,7 @@ public class LexHelper {
                 lexErrors.add(new LexError(LexError.UNKNOWN_STRING_FORMAT, lineNumber, characterOffset + currentToken.length(), "Unknown string format"));
             } else if (currentChar == '\\'){
                 // checks the currentChar is '\' and if true then checks the next character exists.
-                if (nextCharExists()){
+                if (charExists(charIndex)){
                     advanceChar(); // advances the charIndex.
                     updateCurrentChar(); // updates the currentChar variable.
 
@@ -154,7 +162,7 @@ public class LexHelper {
         endToken(); // ends the string token.
 
         // checks if the next character exists
-        if (nextCharExists()){
+        if (charExists(charIndex)){
             characterOffset++; // increments characterOffset by 1 for the closing '"'.
             advanceChar(); // advances the charIndex.
         } else {
@@ -164,40 +172,47 @@ public class LexHelper {
         }
     }
 
-    public void tokeniseKeyType(){
-        // check if the next char is whitespace or a syntax.
+    public void tokeniseNonSyntax(){
+        // checks if the currentChar is a terminating char or an operation.
         if (isTerminatingChar(currentChar) || isOperationChar(currentChar)){
             endToken(); // ends the key token.
         } else {
-            updateToken(); // add char to token.
-        }
-    }
-
-    public void tokeniseNumberIdentifier(){
-        // check if the next char is whitespace or a syntax.
-        if (isTerminatingChar(currentChar) || isOperationChar(currentChar)){
-            endToken(); // ends the key token.
-        } else if (isValidDigitChar(currentChar) || isValidLetterChar(currentChar)){
-            updateToken(); // add char to token.
+            // if the currentChar is not a terminating character or an operation then the token shouldn't end.
+            // so the currentToken is updated.
+            updateToken();
         }
     }
 
     public void tokeniseSyntax(){
-        if (isTerminatingChar(currentChar) || isValidDigitChar(currentChar) || isValidLetterChar(currentChar)
-                || (isOperationChar(currentChar) && !isOperationChar(currentToken.charAt(currentToken.length() - 1)))){
-            endToken(); // ends the key token.
-        } else if (isOperationChar(currentChar) && isOperationChar(currentToken.charAt(currentToken.length() - 1))){
-            updateToken(); // add char to token.
+        // checks for repeating operations by checking if the currentChar is an operation
+        // and the last character of currentToken is an operation.
+        // this is to pick up the token "==" and read error tokens such as "===" or "--".
+        if (isOperationChar(currentChar) && isOperationChar(currentToken.charAt(currentToken.length() - 1))){
+            // if true then add currentChar to the token.
+            updateToken();
+        } else {
+            // if the above doesn't occur then end the token.
+            endToken();
         }
     }
 
     public void tokeniseUnknown(){
+        // checks for repeating operations by checking if the currentChar is an operation
+        // and the last character of currentToken is an operation.
+        // this is to pick up the more unknown tokens such as "====" or "---".
         if (isOperationChar(currentChar) && isOperationChar(currentToken.charAt(currentToken.length() - 1))){
-            updateToken(); // add char to token.
-        } else if (isTerminatingChar(currentChar)){
+            // if true then add currentChar to the token.
+            updateToken();
+        } else {
+            // if the above doesn't occur then create the error and end token.
+
+            // checks if the error is of type UNKNOWN_SYNTAX.
             if (isInTokenArray(SYNTAX_TOKENS, currentToken.substring(0, 1))){
+                // if true the creates an error of type UNKNOWN_SYNTAX and adds it to the lexErrors arraylist.
                 lexErrors.add(new LexError(LexError.UNKNOWN_SYNTAX, lineNumber, characterOffset, "Unknown syntax."));
             } else if (isNumber(currentToken.substring(0, 1))){
+                // checks if the error is of type UNKNOWN_NUMBER_FORMAT.
+                // if true the creates an error of type UNKNOWN_NUMBER_FORMAT and adds it to the lexErrors arraylist.
                 lexErrors.add(new LexError(LexError.UNKNOWN_NUMBER_FORMAT, lineNumber, characterOffset, "Unknown number"));
             }
             endToken(); // ends the key token.
@@ -205,12 +220,21 @@ public class LexHelper {
     }
 
     public void endToken(){
-        lexTokens.add(new LexToken(tokenType, lineNumber, characterOffset, currentToken));
+        // adds the currentToken to the lexTokens.
+        if (tokenType != LexToken.UNKNOWN){
+            lexTokens.add(new LexToken(tokenType, lineNumber, characterOffset, currentToken));
+        }
+
+        // updates the characterOffset to the start of the nextToken and resets currentToken.
         characterOffset += currentToken.length();
         currentToken = "";
     }
 
     public int getTokenType(){
+        // checks the token type.
+        // checks keyword before identifier since tokens like "if" would meet identifier criteria but needs to be keyword.
+        // likewise with typename, we check it before identifier to stop tokens like "int" being classified incorrectly.
+        // if the currentToken is not recognised as any of the token types we want then return UNKNOWN type.
         if(isInTokenArray(KEYWORDS, currentToken)) return LexToken.KEYWORD;
         else if(isInTokenArray(SYNTAX_TOKENS, currentToken)) return LexToken.SYNTAX_TOKEN;
         else if(isInTokenArray(TYPE_NAMES, currentToken)) return LexToken.TYPE_NAME;
@@ -220,98 +244,130 @@ public class LexHelper {
     }
 
     public boolean isInTokenArray(String[] array, String token){
-        boolean isElement = false;
+        boolean isElement = false; // initialises isElement to false.
+
+        // checks each element in array.
         for (String element : array){
+            // if the element is equal to the token then isElement is set to true and the loop is broken.
             if (token.equals(element)) {
                 isElement = true;
                 break;
             }
         }
-        return isElement;
+
+        return isElement; // returns isElement.
     }
 
     public boolean isIdentifier(){
-        if(currentToken.isEmpty()) return false;
+        // an identifier cannot start with number and cannot contain any whitespace or syntax characters.
+
+        if (currentToken.isEmpty()) return false;
+
+        // checks if the first character of currentToken is a number and returns false if it is.
         if(Character.isDigit(currentToken.charAt(0))) return false;
+
+        // checks if the currentToken contains any whitespace characters and returns false if it does.
         if(currentToken.contains(" ")
                 || currentToken.contains("\n")
                 || currentToken.contains("\r")
                 || currentToken.contains("\t"))
             return false;
-        boolean isIdentifier = true;
-        for(String syntax_token : SYNTAX_TOKENS){
-            if(currentToken.contains(syntax_token)){
+
+
+        boolean isIdentifier = true; // initialises isIdentifier.
+
+        // loops through the possible syntax tokens.
+        for(String syntaxToken : SYNTAX_TOKENS){
+            // if the currentToken contains syntaxToken then isIdentifier is set to false and the loop is broken.
+            if(currentToken.contains(syntaxToken)){
                 isIdentifier = false;
                 break;
             }
         }
-        return isIdentifier;
+
+        return isIdentifier; // returns isIdentifier.
     }
 
     public boolean isNumber(String string){
         // this fragment is used to find out if a string is numeric.
         // found at https://sentry.io/answers/how-to-check-if-a-string-is-numeric-in-java/
         try{
+            // tries to parse string into an integer.
             Integer.parseInt(string);
-            return true;
+
+            // if it works then return true since string is a number.
+            // numbers begin with 0's so return false if the first char of string is 0 and true otherwise.
+            return string.charAt(0) != '0';
         } catch (NumberFormatException e){
+            // if there is an exception then returns false since string cannot be a number.
             return false;
         }
     }
 
     public boolean isOperationChar(char character){
+        // returns true if character is '+', '-', '*', '/' or '=' and false otherwise.
         return (character == '+' || character == '-' || character == '*' || character == '/' || character == '=');
     }
 
     public boolean isNotValidChar(char character){
-        return !isTerminatingChar(character) && !isOperationChar(character)
-                && !isValidDigitChar(character) && !isValidEscapeChar(character)
-                && !isValidLetterChar(character);
+        // returns true if character is not a terminating char, operation, digit, letter or escape char.
+        return !(isTerminatingChar(character) || isOperationChar(character)
+                || isValidDigitChar(character) || isValidEscapeChar(character)
+                || isValidLetterChar(character));
     }
 
     public boolean isValidEscapeChar(char character){
+        // returns true if character is 'r', 'n', 't', '"' or '\\' and false otherwise.
         return character == 'r' || character == 'n' || character == 't' || character == '"' || character == '\\';
     }
 
     public boolean isValidLetterChar(char character){
+        // returns true if character is alphabetic and false otherwise.
         return Character.isAlphabetic(character);
     }
 
     public boolean isValidDigitChar(char character){
+        // returns true if character is a digit and false otherwise.
         return Character.isDigit(character);
     }
 
     public boolean isWhitespace(char character){
+        // returns true if character is '\r', '\n', '\t' or ' ' and false otherwise.
         return character == '\r' || character == '\n' || character == '\t' || character == ' ';
     }
 
     public boolean isTerminatingChar(char character){
+        // returns true if character is whitespace, ',', ';', '(', ')', '{', '}', '[' or ']' and false otherwise.
         return (isWhitespace(character) || character == ',' || character == ';'
                 || character == '(' || character == ')' || character == '{'
                 || character == '}' || character == '[' || character == ']');
     }
 
     public void advanceChar(){
+        // increments charIndex by 1.
         charIndex++;
     }
 
     public void updateToken(){
+        // adds currentChar to currentToken.
         currentToken += currentChar;
     }
 
     public void updateCurrentChar(){
+        // sets currentChar equal to the character at charIndex in input.
         currentChar = input.charAt(charIndex);
     }
 
-    public boolean nextCharExists(){
-        return charIndex < input.length();
+    public boolean charExists(int index){
+        // returns true if the charIndex is strictly smaller than the length of input and false otherwise.
+        return index < input.length();
     }
 
     public List<LexToken> getLexTokens(){
-        return lexTokens;
+        return lexTokens; // returns lexTokens.
     }
 
     public List<LexError> getLexErrors(){
-        return lexErrors;
+        return lexErrors; // returns lexErrors.
     }
 }

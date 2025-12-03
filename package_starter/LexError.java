@@ -16,13 +16,4 @@ public class LexError {
 		this.characterOffset = characterOffset;
 		this.message = msg;
 	}
-
-	@Override
-	public String toString() {
-		return "LexError{" +
-				"lineNumber=" + lineNumber +
-				", characterOffset=" + characterOffset +
-				", message=" + message +
-				'}';
-	}
 }

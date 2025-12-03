@@ -1,4 +1,2 @@
-int q = 1;
-int p;
-p = 1;
-bool p = ==(q, q);
+int q = a;
+bool p = ==(a, b)

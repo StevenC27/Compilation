@@ -2,15 +2,14 @@ public class Syntax {
 	SyntaxHelper syntaxHelper;
   
 	Syntax(LexToken[] tokens) {
-		syntaxHelper = new SyntaxHelper(tokens);
+		syntaxHelper = new SyntaxHelper(tokens); // creates a syntaxHelper reference.
 	}
 	
 	SyntaxNode parse(){
-		// Create node for program.
-		return syntaxHelper.parseProgram();
+		return syntaxHelper.parseProgram(); // Create root node for tree.
 	}
 	
 	SyntaxError[] getErrors(){
-		return syntaxHelper.syntaxErrors.toArray(new SyntaxError[0]);
+		return syntaxHelper.syntaxErrors.toArray(new SyntaxError[0]); // gets the syntaxErrors from syntaxHelper.
 	}
 }
